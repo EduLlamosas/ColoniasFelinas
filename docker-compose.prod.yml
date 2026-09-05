@@ -16,6 +16,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: colonias_db
+    # Solo en loopback de la propia VPS: nunca alcanzable desde internet, pero permite
+    # llegar a Postgres con un túnel SSH (ssh -L 5432:localhost:5432 ...) para usar
+    # Prisma Studio en local contra los datos reales.
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
