@@ -1,0 +1,69 @@
+name: colonias-felinas
+
+# Compose de producción: a diferencia de docker-compose.yml (pensado para desarrollo local,
+# donde se necesita acceder a Postgres en localhost:5432 desde fuera de Docker), aquí ningún
+# servicio publica puertos salvo Caddy (80/443). db/backend/frontend solo son alcanzables
+# entre sí por nombre de servicio en la red interna de Docker Compose.
+#
+# Front (coloniasfelinas.com) y back (api.coloniasfelinas.com) tienen cada uno su propio
+# dominio: Caddy hace de único punto de entrada y reenvía cada host a su contenedor.
+
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: colonias_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend-colonias
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://${API_DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      FRONT_DOMAIN: ${FRONT_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

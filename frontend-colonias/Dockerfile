@@ -11,8 +11,12 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-# Sin VITE_API_URL aquí dentro (no se copia .env, ver .dockerignore): el build queda con rutas
-# relativas (/graphql, /uploads) que Nginx reenvía al backend en producción.
+# Sin VITE_API_URL (no se copia .env, ver .dockerignore) el build queda con rutas relativas
+# (/graphql, /uploads), que Nginx reenvía al backend: vale si front y back comparten dominio.
+# Con dominios separados (nuestro caso: coloniasfelinas.com / api.coloniasfelinas.com), se pasa
+# como --build-arg VITE_API_URL=https://api.coloniasfelinas.com para llamar a esa URL absoluta.
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # ---------- producción ----------

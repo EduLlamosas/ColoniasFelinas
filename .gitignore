@@ -2,3 +2,6 @@
 node_modules/
 
 notes.md
+
+# Variables de docker-compose.prod.yml (FRONT_DOMAIN, API_DOMAIN, POSTGRES_PASSWORD): solo en el servidor
+.env
