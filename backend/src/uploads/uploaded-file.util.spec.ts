@@ -1,8 +1,11 @@
-import { unlink } from 'node:fs/promises';
+import { statfs, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
-import { deleteUploadedFile, UPLOADS_DIR } from './uploaded-file.util.js';
+import { deleteUploadedFile, getFreeDiskBytes, UPLOADS_DIR } from './uploaded-file.util.js';
 
-vi.mock('node:fs/promises', () => ({ unlink: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('node:fs/promises', () => ({
+  unlink: vi.fn().mockResolvedValue(undefined),
+  statfs: vi.fn(),
+}));
 
 describe('deleteUploadedFile', () => {
   beforeEach(() => {
@@ -34,5 +37,12 @@ describe('deleteUploadedFile', () => {
   it('no revienta si el borrado falla (fichero ya no existe)', async () => {
     vi.mocked(unlink).mockRejectedValueOnce(new Error('ENOENT'));
     await expect(deleteUploadedFile('http://x/uploads/no-existe.webp')).resolves.toBeUndefined();
+  });
+});
+
+describe('getFreeDiskBytes', () => {
+  it('multiplica los bloques disponibles por su tamaño', async () => {
+    vi.mocked(statfs).mockResolvedValue({ bavail: 1000, bsize: 4096 } as never);
+    expect(await getFreeDiskBytes()).toBe(1000 * 4096);
   });
 });

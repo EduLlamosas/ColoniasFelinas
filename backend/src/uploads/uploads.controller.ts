@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
   BadRequestException,
   Controller,
+  HttpException,
   Post,
   UploadedFile,
   UseGuards,
@@ -17,12 +18,16 @@ import { RolUsuario } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
-import { UPLOADS_DIR } from './uploaded-file.util.js';
+import { getFreeDiskBytes, UPLOADS_DIR } from './uploaded-file.util.js';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_UPLOAD_SIZE = 8 * 1024 * 1024;
 const MAX_WIDTH = 1600;
 const WEBP_QUALITY = 80;
+// Margen de seguridad reservado para el SO/Postgres/Docker, no para las fotos:
+// en un volumen de 40GB esto deja de aceptar subidas a partir de ~38GB usados.
+const DEFAULT_MIN_FREE_DISK_MB = 2048;
+const INSUFFICIENT_STORAGE = 507;
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
@@ -50,6 +55,17 @@ export class UploadsController {
   async upload(@UploadedFile() file?: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No se ha proporcionado ningún archivo');
+    }
+
+    const minFreeBytes =
+      (Number(this.config.get<string>('MIN_FREE_DISK_MB')) || DEFAULT_MIN_FREE_DISK_MB) *
+      1024 *
+      1024;
+    if ((await getFreeDiskBytes()) < minFreeBytes) {
+      throw new HttpException(
+        'Almacenamiento lleno: no se pueden subir más imágenes por ahora',
+        INSUFFICIENT_STORAGE,
+      );
     }
 
     let processed: Buffer;
