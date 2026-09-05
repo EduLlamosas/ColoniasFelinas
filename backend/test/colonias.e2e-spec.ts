@@ -21,7 +21,7 @@ const UPDATE_COLONIA = `
 
 const REMOVE_COLONIA = `
   mutation RemoveColonia($id: ID!) {
-    removeColonia(id: $id) { id }
+    removeColonia(id: $id)
   }
 `;
 

@@ -41,8 +41,6 @@ export const UPDATE_VOLUNTARIO_MUTATION = gql`
 
 export const REMOVE_VOLUNTARIO_MUTATION = gql`
 	mutation RemoveVoluntario($id: ID!) {
-		removeVoluntario(id: $id) {
-			id
-		}
+		removeVoluntario(id: $id)
 	}
 `;

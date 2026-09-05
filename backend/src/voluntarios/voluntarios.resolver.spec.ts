@@ -43,8 +43,8 @@ describe('VoluntariosResolver', () => {
     expect(service.update).toHaveBeenCalledWith('1', data);
   });
 
-  it('removeVoluntario() delega en el service con el id', async () => {
-    await resolver.removeVoluntario('1');
+  it('removeVoluntario() delega en el service con el id y devuelve true', async () => {
+    expect(await resolver.removeVoluntario('1')).toBe(true);
     expect(service.remove).toHaveBeenCalledWith('1');
   });
 });

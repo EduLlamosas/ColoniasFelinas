@@ -38,8 +38,9 @@ export class VoluntariosResolver {
     return this.voluntariosService.update(id, data);
   }
 
-  @Mutation(() => Voluntario)
-  removeVoluntario(@Args('id', { type: () => ID }) id: string) {
-    return this.voluntariosService.remove(id);
+  @Mutation(() => Boolean)
+  async removeVoluntario(@Args('id', { type: () => ID }) id: string) {
+    await this.voluntariosService.remove(id);
+    return true;
   }
 }

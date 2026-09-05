@@ -43,8 +43,8 @@ describe('AsignacionesResolver', () => {
     expect(service.update).toHaveBeenCalledWith(1, 2, data);
   });
 
-  it('removeAsignacion() delega en el service con ambos ids', async () => {
-    await resolver.removeAsignacion(1, 2);
+  it('removeAsignacion() delega en el service con ambos ids y devuelve true', async () => {
+    expect(await resolver.removeAsignacion(1, 2)).toBe(true);
     expect(service.remove).toHaveBeenCalledWith(1, 2);
   });
 });

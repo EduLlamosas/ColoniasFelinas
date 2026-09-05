@@ -44,8 +44,6 @@ export const UPDATE_COLONIA_MUTATION = gql`
 
 export const REMOVE_COLONIA_MUTATION = gql`
 	mutation RemoveColonia($id: ID!) {
-		removeColonia(id: $id) {
-			id
-		}
+		removeColonia(id: $id)
 	}
 `;

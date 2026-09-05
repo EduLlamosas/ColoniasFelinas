@@ -38,8 +38,9 @@ export class ColoniasResolver {
     return this.coloniasService.update(id, data);
   }
 
-  @Mutation(() => Colonia)
-  removeColonia(@Args('id', { type: () => ID }) id: string) {
-    return this.coloniasService.remove(id);
+  @Mutation(() => Boolean)
+  async removeColonia(@Args('id', { type: () => ID }) id: string) {
+    await this.coloniasService.remove(id);
+    return true;
   }
 }

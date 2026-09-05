@@ -21,7 +21,7 @@ const UPDATE_COMEDERO = `
 
 const REMOVE_COLONIA = `
   mutation RemoveColonia($id: ID!) {
-    removeColonia(id: $id) { id }
+    removeColonia(id: $id)
   }
 `;
 

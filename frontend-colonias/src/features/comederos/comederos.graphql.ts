@@ -40,8 +40,6 @@ export const UPDATE_COMEDERO_MUTATION = gql`
 
 export const REMOVE_COMEDERO_MUTATION = gql`
 	mutation RemoveComedero($id: ID!) {
-		removeComedero(id: $id) {
-			id
-		}
+		removeComedero(id: $id)
 	}
 `;

@@ -44,8 +44,8 @@ describe('ColoniasResolver', () => {
     expect(service.update).toHaveBeenCalledWith('1', data);
   });
 
-  it('removeColonia() delega en el service con el id', async () => {
-    await resolver.removeColonia('1');
+  it('removeColonia() delega en el service con el id y devuelve true', async () => {
+    expect(await resolver.removeColonia('1')).toBe(true);
     expect(service.remove).toHaveBeenCalledWith('1');
   });
 });

@@ -19,7 +19,7 @@ const UPDATE_VOLUNTARIO = `
 
 const REMOVE_VOLUNTARIO = `
   mutation RemoveVoluntario($id: ID!) {
-    removeVoluntario(id: $id) { id }
+    removeVoluntario(id: $id)
   }
 `;
 
