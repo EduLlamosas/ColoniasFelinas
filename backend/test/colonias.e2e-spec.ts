@@ -33,7 +33,7 @@ const CREATE_GATO = `
 
 const REMOVE_GATO = `
   mutation RemoveGato($id: ID!) {
-    removeGato(id: $id) { id }
+    removeGato(id: $id)
   }
 `;
 

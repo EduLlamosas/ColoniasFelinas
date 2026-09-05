@@ -43,8 +43,8 @@ describe('GatosResolver', () => {
     expect(service.update).toHaveBeenCalledWith('1', data);
   });
 
-  it('removeGato() delega en el service con el id', async () => {
-    await resolver.removeGato('1');
+  it('removeGato() delega en el service con el id y devuelve true', async () => {
+    expect(await resolver.removeGato('1')).toBe(true);
     expect(service.remove).toHaveBeenCalledWith('1');
   });
 });
