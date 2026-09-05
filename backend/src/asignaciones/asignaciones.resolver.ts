@@ -42,11 +42,12 @@ export class AsignacionesResolver {
     return this.asignacionesService.update(voluntarioId, coloniaId, data);
   }
 
-  @Mutation(() => Asignacion)
-  removeAsignacion(
+  @Mutation(() => Boolean)
+  async removeAsignacion(
     @Args('voluntarioId', { type: () => Int }) voluntarioId: number,
     @Args('coloniaId', { type: () => Int }) coloniaId: number,
   ) {
-    return this.asignacionesService.remove(voluntarioId, coloniaId);
+    await this.asignacionesService.remove(voluntarioId, coloniaId);
+    return true;
   }
 }

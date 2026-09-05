@@ -1,15 +1,19 @@
 vi.mock('node:fs/promises', () => ({
   writeFile: vi.fn().mockResolvedValue(undefined),
+  statfs: vi.fn().mockResolvedValue({ bavail: 100_000_000, bsize: 4096 }),
 }));
 
-import { writeFile } from 'node:fs/promises';
-import { BadRequestException } from '@nestjs/common';
+import { statfs, writeFile } from 'node:fs/promises';
+import { BadRequestException, HttpException } from '@nestjs/common';
 import sharp from 'sharp';
 import { UploadsController } from './uploads.controller.js';
 import type { ConfigService } from '@nestjs/config';
 
 function createConfigMock(appUrl = 'http://localhost:3000') {
-  return { getOrThrow: vi.fn().mockReturnValue(appUrl) } as unknown as ConfigService;
+  return {
+    getOrThrow: vi.fn().mockReturnValue(appUrl),
+    get: vi.fn().mockReturnValue(undefined),
+  } as unknown as ConfigService;
 }
 
 function createMulterFile(buffer: Buffer, mimetype = 'image/png'): Express.Multer.File {
@@ -49,6 +53,15 @@ describe('UploadsController', () => {
     const metadata = await sharp(savedBuffer as Buffer).metadata();
     expect(metadata.format).toBe('webp');
     expect(metadata.width).toBe(1600);
+  });
+
+  it('lanza HttpException 507 si no queda espacio libre suficiente en disco', async () => {
+    vi.mocked(statfs).mockResolvedValueOnce({ bavail: 10, bsize: 4096 } as never);
+    const controller = new UploadsController(createConfigMock());
+    const file = createMulterFile(Buffer.from('no importa, no debería llegar a procesarse'));
+
+    await expect(controller.upload(file)).rejects.toThrow(HttpException);
+    expect(writeFile).not.toHaveBeenCalled();
   });
 
   it('no agranda una imagen más pequeña que el ancho máximo', async () => {

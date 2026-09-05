@@ -35,6 +35,10 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
+# `npm run db:seed` (prisma db seed) ejecuta prisma/seed.ts directo con tsx, no el compilado
+# en dist/ - y seed.ts importa un helper de src/uploads/. Sin esto, el comando de seed falla
+# en producción con ERR_MODULE_NOT_FOUND aunque el servidor en sí funcione perfectamente.
+COPY --from=builder /app/src ./src
 COPY package.json prisma.config.ts ./
 
 RUN mkdir -p uploads

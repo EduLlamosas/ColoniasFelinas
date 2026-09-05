@@ -1,7 +1,13 @@
-import { unlink } from 'node:fs/promises';
+import { statfs, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export const UPLOADS_DIR = join(process.cwd(), 'uploads');
+
+/** Bytes libres en el volumen que contiene UPLOADS_DIR (y, en despliegue, también la BD). */
+export async function getFreeDiskBytes(): Promise<number> {
+  const stats = await statfs(UPLOADS_DIR);
+  return stats.bavail * stats.bsize;
+}
 
 /**
  * Borra del disco el fichero de uploads/ al que apunta una URL guardada en un campo tipo

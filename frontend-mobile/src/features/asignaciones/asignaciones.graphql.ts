@@ -29,7 +29,7 @@ export const CREATE_ASIGNACION_MUTATION = gql`
 
 export const UPDATE_ASIGNACION_MUTATION = gql`
 	${ASIGNACION_FIELDS}
-	mutation UpdateAsignacion($voluntarioId: ID!, $coloniaId: ID!, $data: UpdateAsignacionInput!) {
+	mutation UpdateAsignacion($voluntarioId: Int!, $coloniaId: Int!, $data: UpdateAsignacionInput!) {
 		updateAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId, data: $data) {
 			...AsignacionFields
 		}
@@ -37,10 +37,7 @@ export const UPDATE_ASIGNACION_MUTATION = gql`
 `;
 
 export const REMOVE_ASIGNACION_MUTATION = gql`
-	mutation RemoveAsignacion($voluntarioId: ID!, $coloniaId: ID!) {
-		removeAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId) {
-			voluntarioId
-			coloniaId
-		}
+	mutation RemoveAsignacion($voluntarioId: Int!, $coloniaId: Int!) {
+		removeAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId)
 	}
 `;

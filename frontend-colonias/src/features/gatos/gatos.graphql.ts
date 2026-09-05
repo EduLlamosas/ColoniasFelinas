@@ -48,8 +48,6 @@ export const UPDATE_GATO_MUTATION = gql`
 
 export const REMOVE_GATO_MUTATION = gql`
 	mutation RemoveGato($id: ID!) {
-		removeGato(id: $id) {
-			id
-		}
+		removeGato(id: $id)
 	}
 `;

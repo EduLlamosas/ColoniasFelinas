@@ -38,8 +38,9 @@ export class ComederosResolver {
     return this.comederosService.update(id, data);
   }
 
-  @Mutation(() => Comedero)
-  removeComedero(@Args('id', { type: () => ID }) id: string) {
-    return this.comederosService.remove(id);
+  @Mutation(() => Boolean)
+  async removeComedero(@Args('id', { type: () => ID }) id: string) {
+    await this.comederosService.remove(id);
+    return true;
   }
 }

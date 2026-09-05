@@ -43,8 +43,8 @@ describe('ComederosResolver', () => {
     expect(service.update).toHaveBeenCalledWith('1', data);
   });
 
-  it('removeComedero() delega en el service con el id', async () => {
-    await resolver.removeComedero('1');
+  it('removeComedero() delega en el service con el id y devuelve true', async () => {
+    expect(await resolver.removeComedero('1')).toBe(true);
     expect(service.remove).toHaveBeenCalledWith('1');
   });
 });

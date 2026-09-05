@@ -38,8 +38,9 @@ export class GatosResolver {
     return this.gatosService.update(id, data);
   }
 
-  @Mutation(() => Gato)
-  removeGato(@Args('id', { type: () => ID }) id: string) {
-    return this.gatosService.remove(id);
+  @Mutation(() => Boolean)
+  async removeGato(@Args('id', { type: () => ID }) id: string) {
+    await this.gatosService.remove(id);
+    return true;
   }
 }
