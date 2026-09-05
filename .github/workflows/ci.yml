@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          cache: "npm"
+      - run: npm ci
+      - name: Generar Prisma Client
+        working-directory: backend
+        run: npx prisma generate
+      - name: Comprobar tipos
+        working-directory: backend
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Tests unitarios
+        working-directory: backend
+        run: npm test
+
+  frontend-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          cache: "npm"
+      - run: npm ci
+      - name: Tests
+        working-directory: frontend-colonias
+        run: npx vitest run
+      - name: Tipos + build de producción
+        working-directory: frontend-colonias
+        run: npm run build
+
+  frontend-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.x"
+          cache: "npm"
+      - run: npm ci
+      - name: Comprobar tipos
+        working-directory: frontend-mobile
+        run: npx tsc --noEmit
+      - name: Tests
+        working-directory: frontend-mobile
+        run: npx jest

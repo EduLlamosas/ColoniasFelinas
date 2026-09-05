@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoSuelo {
+  URBANO
+  RURAL
+  INDUSTRIAL
+}
+
+enum Sexo {
+  MACHO
+  HEMBRA
+  DESCONOCIDO
+}
+
+enum EstadoCer {
+  AVISTADO
+  CAPTURADO
+  ESTERILIZADO
+  RETORNADO
+  ADOPTADO
+}
+
+enum RolUsuario {
+  ADMINISTRADOR
+  GESTOR
+}
+
+model Usuario {
+  id             Int        @id @default(autoincrement())
+  email          String     @unique
+  passwordHash   String     @map("password_hash")
+  nombreCompleto String     @map("nombre_completo")
+  rol            RolUsuario @default(GESTOR)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  @@map("usuarios")
+}
+
+model Colonia {
+  id            Int       @id @default(autoincrement())
+  codigoOficial String    @unique @map("codigo_oficial")
+  nombre        String
+  tipoSuelo     TipoSuelo @map("tipo_suelo")
+  latitud       Float
+  longitud      Float
+  observaciones String?
+  fotoUrl       String?   @map("foto_url")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  comederos    Comedero[]
+  gatos        Gato[]
+  asignaciones AsignacionVoluntario[]
+
+  @@map("colonias")
+}
+
+model Comedero {
+  id                 Int      @id @default(autoincrement())
+  coloniaId          Int      @map("colonia_id")
+  ubicacionDetallada String   @map("ubicacion_detallada")
+  fotoUrl            String?  @map("foto_url")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  colonia Colonia @relation(fields: [coloniaId], references: [id], onDelete: Cascade)
+
+  @@map("comederos")
+}
+
+model Gato {
+  id              Int       @id @default(autoincrement())
+  coloniaId       Int       @map("colonia_id")
+  nombre          String?
+  sexo            Sexo
+  fechaNacimiento DateTime? @map("fecha_nacimiento")
+  capaPelaje      String    @map("capa_pelaje")
+  estadoCer       EstadoCer @map("estado_cer")
+  observaciones   String?
+  tieneMicrochip  Boolean   @default(false) @map("tiene_microchip")
+  numMicrochip    String?   @unique @map("num_microchip")
+  marcajeOreja    Boolean   @default(false) @map("marcaje_oreja")
+  fotoUrl         String?   @map("foto_url")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  colonia Colonia @relation(fields: [coloniaId], references: [id], onDelete: Restrict)
+
+  @@map("gatos")
+}
+
+model Voluntario {
+  id             Int      @id @default(autoincrement())
+  dni            String   @unique
+  nombre         String
+  telefono       String?
+  urlCesionDatos String   @map("url_cesion_datos")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  asignaciones AsignacionVoluntario[]
+
+  @@map("voluntarios")
+}
+
+model AsignacionVoluntario {
+  voluntarioId Int      @map("voluntario_id")
+  coloniaId    Int      @map("colonia_id")
+  rolAsignado  String   @map("rol_asignado") @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  voluntario Voluntario @relation(fields: [voluntarioId], references: [id], onDelete: Cascade)
+  colonia    Colonia    @relation(fields: [coloniaId], references: [id], onDelete: Cascade)
+
+  @@id([voluntarioId, coloniaId])
+  @@map("voluntarios_colonias")
+}

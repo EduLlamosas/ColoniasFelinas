@@ -1,0 +1,4 @@
+# Dependencias del workspace root (npm workspaces hoistea aquí paquetes compartidos)
+node_modules/
+
+notes.md

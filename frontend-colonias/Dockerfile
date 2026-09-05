@@ -1,0 +1,23 @@
+# ---------- build ----------
+FROM node:24-slim AS builder
+WORKDIR /app
+
+# El repo es un npm workspace (lockfile único en la raíz), pero el contexto de build de
+# aquí es solo frontend-colonias/: no puede ver ese lockfile de la raíz. Por eso
+# frontend-colonias/package-lock.json existe como lockfile autocontenido propio solo para
+# Docker (generado con `npm install --workspaces=false --package-lock-only`) - no lo borres
+# pensando que es redundante.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+# Sin VITE_API_URL aquí dentro (no se copia .env, ver .dockerignore): el build queda con rutas
+# relativas (/graphql, /uploads) que Nginx reenvía al backend en producción.
+RUN npm run build
+
+# ---------- producción ----------
+FROM nginx:alpine AS production
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80

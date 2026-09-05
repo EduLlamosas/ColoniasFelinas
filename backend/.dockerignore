@@ -1,0 +1,10 @@
+node_modules
+dist
+uploads
+.git
+.vscode
+.env
+.env.test
+.env.docker
+*.log
+coverage

@@ -1,0 +1,15 @@
+const SIZE_CLASSES = {
+	sm: "h-4 w-4 border-2",
+	md: "h-6 w-6 border-2",
+	lg: "h-10 w-10 border-[3px]",
+} as const;
+
+export function Spinner({ size = "md", className = "" }: { size?: keyof typeof SIZE_CLASSES; className?: string }) {
+	return (
+		<div
+			role="status"
+			aria-label="Cargando"
+			className={`animate-spin rounded-full border-teal-600 border-t-transparent ${SIZE_CLASSES[size]} ${className}`}
+		/>
+	);
+}
