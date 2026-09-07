@@ -97,8 +97,8 @@ export function ComederosListPage() {
 						<thead className={theadClass}>
 							<tr>
 								<th className={thClass}>Foto</th>
-								<th className={thClass}>Colonia</th>
 								<th className={thClass}>Ubicación</th>
+								<th className={thClass}>Colonia</th>
 								<th className={thClass}>
 									<span className="sr-only">Acciones</span>
 								</th>
@@ -115,13 +115,13 @@ export function ComederosListPage() {
 										)}
 									</td>
 									<td className={tdClass}>
-										<Link to={`/colonias/${comedero.coloniaId}`} className="font-medium text-teal-700 hover:underline">
-											{coloniasById.get(String(comedero.coloniaId))?.nombre ?? "—"}
+										<Link to={`/comederos/${comedero.id}`} className="font-medium text-teal-700 hover:underline">
+											{comedero.ubicacionDetallada}
 										</Link>
 									</td>
 									<td className={tdClass}>
-										<Link to={`/comederos/${comedero.id}`} className="font-medium text-teal-700 hover:underline">
-											{comedero.ubicacionDetallada}
+										<Link to={`/colonias/${comedero.coloniaId}`} className="font-medium text-teal-700 hover:underline">
+											{coloniasById.get(String(comedero.coloniaId))?.nombre ?? "—"}
 										</Link>
 									</td>
 									<td className={`${tdClass} text-right`}>
