@@ -1,4 +1,4 @@
-import type { EstadoCer, Sexo, TipoSuelo } from "../types/graphql";
+import type { EstadoCer, Sexo, TipoEventoClinico, TipoSuelo } from "../types/graphql";
 
 export const TIPO_SUELO_LABELS: Record<TipoSuelo, string> = {
 	URBANO: "Urbano",
@@ -18,6 +18,13 @@ export const ESTADO_CER_LABELS: Record<EstadoCer, string> = {
 	ESTERILIZADO: "Esterilizado",
 	RETORNADO: "Retornado",
 	ADOPTADO: "Adoptado",
+};
+
+export const TIPO_EVENTO_CLINICO_LABELS: Record<TipoEventoClinico, string> = {
+	ESTERILIZACION: "Esterilización",
+	VACUNACION: "Vacunación",
+	TEST_ENFERMEDAD: "Test de enfermedad",
+	TRATAMIENTO_ESPECIAL: "Tratamiento especial",
 };
 
 export const ROL_ASIGNADO_SUGERENCIAS = ["Alimentador principal", "Supervisor", "Capturador"];
