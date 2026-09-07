@@ -8,8 +8,10 @@ import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { COMEDEROS_QUERY, REMOVE_COMEDERO_MUTATION } from "./comederos.graphql";
 import { ComederoFormModal } from "./ComederoFormModal";
+import { VisitasComederoSection } from "./VisitasComederoSection";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Comedero } from "../../types/graphql";
 
@@ -77,6 +79,10 @@ export function ComederoDetailPage() {
 							"Sin colonia asociada"
 						)}
 					</p>
+					<p className="mt-1 text-sm text-slate-500">
+						Última visita:{" "}
+						{comedero.ultimaVisita ? new Date(comedero.ultimaVisita).toLocaleString("es-ES") : "Sin visitas registradas"}
+					</p>
 				</div>
 				<div className="flex gap-2">
 					<Button variant="secondary" onClick={() => setEditOpen(true)}>
@@ -92,11 +98,13 @@ export function ComederoDetailPage() {
 
 			<div className="flex max-w-md items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
 				{comedero.fotoUrl ? (
-					<img src={comedero.fotoUrl} alt="" className="h-64 w-full object-cover" />
+					<img src={resolveMediaUrl(comedero.fotoUrl)!} alt="" className="h-64 w-full object-cover" />
 				) : (
 					<PhotoIcon className="h-16 w-16 text-slate-300" />
 				)}
 			</div>
+
+			<VisitasComederoSection comederoId={Number(comedero.id)} />
 
 			{editOpen && <ComederoFormModal open={editOpen} comedero={comedero} onClose={() => setEditOpen(false)} />}
 

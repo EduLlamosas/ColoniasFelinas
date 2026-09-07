@@ -10,6 +10,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
 import { ESTADO_CER_BADGE_CLASSES, ESTADO_CER_LABELS, TIPO_SUELO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { useColoniasLookup } from "./useColoniasLookup";
 import { ColoniasMap } from "./ColoniasMap";
 import { ColoniaFormModal } from "./ColoniaFormModal";
@@ -85,7 +86,7 @@ export function ColoniaDetailPage() {
 
 			<div className="mb-8 flex max-w-md items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
 				{colonia.fotoUrl ? (
-					<img src={colonia.fotoUrl} alt="" className="h-64 w-full object-cover" />
+					<img src={resolveMediaUrl(colonia.fotoUrl)!} alt="" className="h-64 w-full object-cover" />
 				) : (
 					<PhotoIcon className="h-16 w-16 text-slate-300" />
 				)}

@@ -141,7 +141,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 					</Select>
 				</Field>
 
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Field label="Nombre" htmlFor="nombre" hint="Opcional si el gato no tiene nombre asignado">
 						<TextInput id="nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
 					</Field>
@@ -165,7 +165,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 					/>
 				</Field>
 
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Field label="Sexo" htmlFor="sexo" required>
 						<Select id="sexo" required value={form.sexo} onChange={(e) => setForm({ ...form, sexo: e.target.value as Sexo })}>
 							<option value="" disabled>

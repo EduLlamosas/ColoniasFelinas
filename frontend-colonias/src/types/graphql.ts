@@ -2,6 +2,7 @@ export type TipoSuelo = "URBANO" | "RURAL" | "INDUSTRIAL";
 export type Sexo = "MACHO" | "HEMBRA" | "DESCONOCIDO";
 export type EstadoCer = "AVISTADO" | "CAPTURADO" | "ESTERILIZADO" | "RETORNADO" | "ADOPTADO";
 export type RolUsuario = "ADMINISTRADOR" | "GESTOR";
+export type TipoEventoClinico = "ESTERILIZACION" | "VACUNACION" | "TEST_ENFERMEDAD" | "TRATAMIENTO_ESPECIAL";
 
 export interface Usuario {
 	id: string;
@@ -37,6 +38,26 @@ export interface Comedero {
 	fotoUrl: string | null;
 	createdAt: string;
 	updatedAt: string;
+	ultimaVisita?: string | null;
+}
+
+export interface VisitaComedero {
+	id: string;
+	comederoId: number;
+	piensoSeco: boolean;
+	comidaHumeda: boolean;
+	agua: boolean;
+	observaciones: string | null;
+	createdAt: string;
+}
+
+export interface RegistroClinico {
+	id: string;
+	gatoId: number;
+	tipo: TipoEventoClinico;
+	fecha: string;
+	diagnostico: string;
+	createdAt: string;
 }
 
 export interface Gato {

@@ -10,6 +10,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { VOLUNTARIOS_QUERY, REMOVE_VOLUNTARIO_MUTATION } from "./voluntarios.graphql";
 import { VoluntarioFormModal } from "./VoluntarioFormModal";
 import { ASIGNACIONES_QUERY } from "../asignaciones/asignaciones.graphql";
@@ -92,7 +93,7 @@ export function VoluntarioDetailPage() {
 
 			<div className="mb-8 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
 				<h2 className="mb-3 text-sm font-semibold text-slate-900">Datos de contacto</h2>
-				<dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+				<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
 					<div>
 						<dt className="text-slate-500">Teléfono</dt>
 						<dd className="text-slate-700">{voluntario.telefono ?? "—"}</dd>
@@ -102,7 +103,7 @@ export function VoluntarioDetailPage() {
 						<dd>
 							{voluntario.urlCesionDatos ? (
 								<a
-									href={voluntario.urlCesionDatos}
+									href={resolveMediaUrl(voluntario.urlCesionDatos)!}
 									target="_blank"
 									rel="noreferrer"
 									className="inline-flex items-center gap-1 text-teal-700 hover:underline"

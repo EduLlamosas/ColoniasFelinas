@@ -94,7 +94,7 @@ export function VoluntarioFormModal({ open, onClose, voluntario }: VoluntarioFor
 	return (
 		<Modal open={open} onClose={handleClose} title={isEditing ? "Editar voluntario" : "Nuevo voluntario"}>
 			<form onSubmit={handleSubmit} className="space-y-4">
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Field label="DNI" htmlFor="dni" required hint="8 dígitos y una letra">
 						<TextInput
 							id="dni"

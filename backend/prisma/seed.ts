@@ -361,10 +361,93 @@ async function main() {
     ),
   );
 
+  // --- Visitas a comederos ---
+  const comederoBanco = await prisma.comedero.findFirstOrThrow({
+    where: { coloniaId: alameda.id, ubicacionDetallada: 'Junto al banco verde, entrada norte' },
+  });
+  const comederoOlivo = await prisma.comedero.findFirstOrThrow({
+    where: { coloniaId: olivar.id, ubicacionDetallada: 'Bajo el olivo grande, junto al muro' },
+  });
+
+  for (const data of [
+    {
+      comederoId: comederoBanco.id,
+      piensoSeco: true,
+      comidaHumeda: false,
+      agua: true,
+      observaciones: null,
+      createdAt: new Date('2026-08-20T09:15:00Z'),
+    },
+    {
+      comederoId: comederoBanco.id,
+      piensoSeco: true,
+      comidaHumeda: true,
+      agua: true,
+      observaciones: 'Comedero con desperfectos en la tapa, revisar.',
+      createdAt: new Date('2026-08-27T09:05:00Z'),
+    },
+    {
+      comederoId: comederoOlivo.id,
+      piensoSeco: true,
+      comidaHumeda: false,
+      agua: false,
+      observaciones: 'Sin agua disponible en el bidón cercano.',
+      createdAt: new Date('2026-08-22T18:40:00Z'),
+    },
+  ] as const) {
+    const existente = await prisma.visitaComedero.findFirst({
+      where: { comederoId: data.comederoId, createdAt: data.createdAt },
+    });
+    if (!existente) {
+      await prisma.visitaComedero.create({ data });
+    }
+  }
+
+  // --- Registros clínicos ---
+  const gatoGrisaceo = await prisma.gato.findFirstOrThrow({
+    where: { coloniaId: alameda.id, nombre: 'Grisáceo' },
+  });
+  const gatoAceituna = await prisma.gato.findFirstOrThrow({
+    where: { coloniaId: olivar.id, nombre: 'Aceituna' },
+  });
+  const gatoEstrella = await prisma.gato.findFirstOrThrow({
+    where: { coloniaId: estacion.id, nombre: 'Estrella' },
+  });
+
+  for (const data of [
+    {
+      gatoId: gatoGrisaceo.id,
+      tipo: 'ESTERILIZACION',
+      fecha: new Date('2026-05-10'),
+      diagnostico: 'Intervención sin incidencias. Recuperación satisfactoria.',
+    },
+    {
+      gatoId: gatoAceituna.id,
+      tipo: 'ESTERILIZACION',
+      fecha: new Date('2026-04-02'),
+      diagnostico: 'Esterilización y limpieza dental. Alta veterinaria a los 3 días.',
+    },
+    {
+      gatoId: gatoEstrella.id,
+      tipo: 'VACUNACION',
+      fecha: new Date('2026-06-18'),
+      diagnostico: 'Pauta de vacunación previa a la adopción, sin reacciones adversas.',
+    },
+  ] as const) {
+    const existente = await prisma.registroClinico.findFirst({
+      where: { gatoId: data.gatoId, tipo: data.tipo, fecha: data.fecha },
+    });
+    if (!existente) {
+      await prisma.registroClinico.create({ data });
+    }
+  }
+
   console.log('Datos de prueba creados.');
   console.log(`  Administrador: ${admin.email} / ${DEMO_PASSWORD}`);
   console.log(`  Gestor:        ${gestor.email} / ${DEMO_PASSWORD}`);
-  console.log('  4 colonias, 6 comederos, 9 gatos, 3 voluntarios, 6 asignaciones, con fotos.');
+  console.log(
+    '  4 colonias, 6 comederos, 9 gatos, 3 voluntarios, 6 asignaciones, 3 visitas a comederos, 3 registros clínicos, con fotos.',
+  );
 }
 
 main()

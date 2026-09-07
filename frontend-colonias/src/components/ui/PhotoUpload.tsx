@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { PhotoIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { uploadImage } from "../../lib/uploads";
+import { resolveMediaUrl } from "../../lib/config";
 import { Spinner } from "./Spinner";
 
 interface PhotoUploadProps {
@@ -34,7 +35,7 @@ export function PhotoUpload({ label, value, onChange }: PhotoUploadProps) {
 		}
 	}
 
-	const displayUrl = preview ?? value;
+	const displayUrl = preview ?? resolveMediaUrl(value);
 
 	return (
 		<div>

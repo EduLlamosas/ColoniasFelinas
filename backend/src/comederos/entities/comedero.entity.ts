@@ -19,4 +19,7 @@ export class Comedero {
 
   @Field()
   updatedAt: Date;
+
+  @Field(() => Date, { nullable: true })
+  ultimaVisita?: Date | null;
 }

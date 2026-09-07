@@ -109,7 +109,7 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 			widthClassName="max-w-xl"
 		>
 			<form onSubmit={handleSubmit} className="space-y-4">
-				<div className="grid grid-cols-2 gap-4">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Field label="Código oficial" htmlFor="codigoOficial" required>
 						<TextInput
 							id="codigoOficial"
@@ -152,7 +152,7 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 						longitud={form.longitud}
 						onChange={(lat, lng) => setForm({ ...form, latitud: lat, longitud: lng })}
 					/>
-					<div className="mt-2 grid grid-cols-2 gap-4">
+					<div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
 						<TextInput
 							id="latitud"
 							type="number"

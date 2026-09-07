@@ -11,6 +11,7 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Select } from "../../components/ui/Select";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { COMEDEROS_QUERY, REMOVE_COMEDERO_MUTATION } from "./comederos.graphql";
 import { ComederoFormModal } from "./ComederoFormModal";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
@@ -108,7 +109,7 @@ export function ComederosListPage() {
 								<tr key={comedero.id} className={trClass}>
 									<td className={tdClass}>
 										{comedero.fotoUrl ? (
-											<img src={comedero.fotoUrl} alt="" className="h-10 w-10 rounded-md object-cover" />
+											<img src={resolveMediaUrl(comedero.fotoUrl)!} alt="" className="h-10 w-10 rounded-md object-cover" />
 										) : (
 											<div className="h-10 w-10 rounded-md bg-slate-100" />
 										)}

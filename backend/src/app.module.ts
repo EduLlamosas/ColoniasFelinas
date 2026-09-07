@@ -11,6 +11,8 @@ import { ComederosModule } from './comederos/comederos.module.js';
 import { GatosModule } from './gatos/gatos.module.js';
 import { VoluntariosModule } from './voluntarios/voluntarios.module.js';
 import { AsignacionesModule } from './asignaciones/asignaciones.module.js';
+import { VisitasComederoModule } from './visitas-comedero/visitas-comedero.module.js';
+import { RegistrosClinicosModule } from './registros-clinicos/registros-clinicos.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
@@ -35,6 +37,8 @@ import { formatGraphqlError } from './graphql/format-error.util.js';
     GatosModule,
     VoluntariosModule,
     AsignacionesModule,
+    VisitasComederoModule,
+    RegistrosClinicosModule,
     UsuariosModule,
     AuthModule,
     UploadsModule,

@@ -10,8 +10,10 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ESTADO_CER_BADGE_CLASSES, ESTADO_CER_LABELS, SEXO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { GATOS_QUERY, REMOVE_GATO_MUTATION } from "./gatos.graphql";
 import { GatoFormModal } from "./GatoFormModal";
+import { HistorialClinicoSection } from "./HistorialClinicoSection";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Gato } from "../../types/graphql";
 
@@ -95,7 +97,7 @@ export function GatoDetailPage() {
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
 				<div className="flex items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 lg:col-span-1">
 					{gato.fotoUrl ? (
-						<img src={gato.fotoUrl} alt="" className="h-64 w-full object-cover" />
+						<img src={resolveMediaUrl(gato.fotoUrl)!} alt="" className="h-64 w-full object-cover" />
 					) : (
 						<PhotoIcon className="h-16 w-16 text-slate-300" />
 					)}
@@ -103,7 +105,7 @@ export function GatoDetailPage() {
 
 				<div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
 					<h2 className="mb-3 text-sm font-semibold text-slate-900">Ficha felina</h2>
-					<dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
 						<div>
 							<dt className="text-slate-500">Sexo</dt>
 							<dd className="text-slate-700">{SEXO_LABELS[gato.sexo]}</dd>
@@ -150,6 +152,8 @@ export function GatoDetailPage() {
 					)}
 				</div>
 			</div>
+
+			<HistorialClinicoSection gatoId={Number(gato.id)} estadoCerActual={gato.estadoCer} />
 
 			{editOpen && <GatoFormModal open={editOpen} gato={gato} onClose={() => setEditOpen(false)} />}
 

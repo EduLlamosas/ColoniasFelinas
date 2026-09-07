@@ -32,6 +32,13 @@ enum RolUsuario {
   GESTOR
 }
 
+enum TipoEventoClinico {
+  ESTERILIZACION
+  VACUNACION
+  TEST_ENFERMEDAD
+  TRATAMIENTO_ESPECIAL
+}
+
 model Usuario {
   id             Int        @id @default(autoincrement())
   email          String     @unique
@@ -71,9 +78,24 @@ model Comedero {
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
-  colonia Colonia @relation(fields: [coloniaId], references: [id], onDelete: Cascade)
+  colonia Colonia          @relation(fields: [coloniaId], references: [id], onDelete: Cascade)
+  visitas VisitaComedero[]
 
   @@map("comederos")
+}
+
+model VisitaComedero {
+  id            Int      @id @default(autoincrement())
+  comederoId    Int      @map("comedero_id")
+  piensoSeco    Boolean  @default(false) @map("pienso_seco")
+  comidaHumeda  Boolean  @default(false) @map("comida_humeda")
+  agua          Boolean  @default(false)
+  observaciones String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  comedero Comedero @relation(fields: [comederoId], references: [id], onDelete: Cascade)
+
+  @@map("visitas_comedero")
 }
 
 model Gato {
@@ -92,9 +114,23 @@ model Gato {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  colonia Colonia @relation(fields: [coloniaId], references: [id], onDelete: Restrict)
+  colonia           Colonia           @relation(fields: [coloniaId], references: [id], onDelete: Restrict)
+  registrosClinicos RegistroClinico[]
 
   @@map("gatos")
+}
+
+model RegistroClinico {
+  id          Int               @id @default(autoincrement())
+  gatoId      Int               @map("gato_id")
+  tipo        TipoEventoClinico
+  fecha       DateTime
+  diagnostico String
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  gato Gato @relation(fields: [gatoId], references: [id], onDelete: Cascade)
+
+  @@map("registros_clinicos")
 }
 
 model Voluntario {

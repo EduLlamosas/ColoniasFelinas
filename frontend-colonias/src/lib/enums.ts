@@ -1,4 +1,4 @@
-import type { EstadoCer, RolUsuario, Sexo, TipoSuelo } from "../types/graphql";
+import type { EstadoCer, RolUsuario, Sexo, TipoEventoClinico, TipoSuelo } from "../types/graphql";
 
 export const TIPO_SUELO_LABELS: Record<TipoSuelo, string> = {
 	URBANO: "Urbano",
@@ -34,6 +34,13 @@ export const ROL_USUARIO_LABELS: Record<RolUsuario, string> = {
 	GESTOR: "Gestor",
 };
 
+export const TIPO_EVENTO_CLINICO_LABELS: Record<TipoEventoClinico, string> = {
+	ESTERILIZACION: "Esterilización",
+	VACUNACION: "Vacunación",
+	TEST_ENFERMEDAD: "Test de enfermedad",
+	TRATAMIENTO_ESPECIAL: "Tratamiento especial",
+};
+
 function toOptions<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
 	return (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 }
@@ -41,3 +48,4 @@ function toOptions<T extends string>(labels: Record<T, string>): { value: T; lab
 export const TIPO_SUELO_OPTIONS = toOptions(TIPO_SUELO_LABELS);
 export const SEXO_OPTIONS = toOptions(SEXO_LABELS);
 export const ESTADO_CER_OPTIONS = toOptions(ESTADO_CER_LABELS);
+export const TIPO_EVENTO_CLINICO_OPTIONS = toOptions(TIPO_EVENTO_CLINICO_LABELS);

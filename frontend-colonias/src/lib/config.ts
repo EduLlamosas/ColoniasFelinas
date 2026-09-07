@@ -5,3 +5,13 @@
 export const API_URL: string = import.meta.env.VITE_API_URL ?? "";
 export const GRAPHQL_URL = `${API_URL}/graphql`;
 export const UPLOADS_URL = `${API_URL}/uploads`;
+
+// El backend guarda fotoUrl/urlCesionDatos con el host que tuviera APP_URL en el momento de
+// la subida (p.ej. "http://localhost:3000" en un backend local) - válido para el entorno en el
+// que se subió, pero no necesariamente para el que lo está viendo ahora (otro dispositivo en la
+// LAN, otro dominio...). Sustituimos ese origin por el API_URL de este entorno, conservando el
+// resto de la ruta (/uploads/xxx.webp). Mismo mecanismo que frontend-mobile/src/lib/config.ts.
+export function resolveMediaUrl(url: string | null | undefined): string | null {
+	if (!url) return null;
+	return url.replace(/^https?:\/\/[^/]+/, API_URL);
+}

@@ -39,6 +39,16 @@ export interface Comedero {
 	updatedAt: string;
 }
 
+export interface VisitaComedero {
+	id: string;
+	comederoId: number;
+	piensoSeco: boolean;
+	comidaHumeda: boolean;
+	agua: boolean;
+	observaciones: string | null;
+	createdAt: string;
+}
+
 export interface Gato {
 	id: string;
 	coloniaId: number;

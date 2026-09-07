@@ -11,6 +11,7 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
 import { TIPO_SUELO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { REMOVE_COLONIA_MUTATION } from "./colonias.graphql";
 import { useColoniasLookup } from "./useColoniasLookup";
 import { ColoniasMap } from "./ColoniasMap";
@@ -122,7 +123,7 @@ export function ColoniasListPage() {
 								<tr key={colonia.id} className={trClass}>
 									<td className={tdClass}>
 										{colonia.fotoUrl ? (
-											<img src={colonia.fotoUrl} alt="" className="h-10 w-10 rounded-md object-cover" />
+											<img src={resolveMediaUrl(colonia.fotoUrl)!} alt="" className="h-10 w-10 rounded-md object-cover" />
 										) : (
 											<div className="h-10 w-10 rounded-md bg-slate-100" />
 										)}

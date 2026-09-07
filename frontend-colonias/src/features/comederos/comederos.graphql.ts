@@ -8,6 +8,7 @@ export const COMEDERO_FIELDS = gql`
 		fotoUrl
 		createdAt
 		updatedAt
+		ultimaVisita
 	}
 `;
 

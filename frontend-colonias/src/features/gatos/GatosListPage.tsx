@@ -13,6 +13,7 @@ import { Select } from "../../components/ui/Select";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
 import { ESTADO_CER_BADGE_CLASSES, ESTADO_CER_LABELS, SEXO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { GATOS_QUERY, REMOVE_GATO_MUTATION } from "./gatos.graphql";
 import { GatoFormModal } from "./GatoFormModal";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
@@ -114,7 +115,7 @@ export function GatosListPage() {
 								<tr key={gato.id} className={trClass}>
 									<td className={tdClass}>
 										{gato.fotoUrl ? (
-											<img src={gato.fotoUrl} alt="" className="h-10 w-10 rounded-md object-cover" />
+											<img src={resolveMediaUrl(gato.fotoUrl)!} alt="" className="h-10 w-10 rounded-md object-cover" />
 										) : (
 											<div className="h-10 w-10 rounded-md bg-slate-100" />
 										)}

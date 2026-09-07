@@ -11,6 +11,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { resolveMediaUrl } from "../../lib/config";
 import { VOLUNTARIOS_QUERY, REMOVE_VOLUNTARIO_MUTATION } from "./voluntarios.graphql";
 import { VoluntarioFormModal } from "./VoluntarioFormModal";
 import type { Voluntario } from "../../types/graphql";
@@ -100,7 +101,7 @@ export function VoluntariosListPage() {
 									<td className={tdClass}>
 										{voluntario.urlCesionDatos ? (
 											<a
-												href={voluntario.urlCesionDatos}
+												href={resolveMediaUrl(voluntario.urlCesionDatos)!}
 												target="_blank"
 												rel="noreferrer"
 												className="text-teal-700 hover:underline"
