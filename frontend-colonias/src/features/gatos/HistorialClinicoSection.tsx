@@ -147,6 +147,9 @@ export function HistorialClinicoSection({ gatoId, estadoCerActual }: HistorialCl
 								</span>
 							</div>
 							<p className="text-slate-600">{registro.diagnostico}</p>
+							<p className="text-xs text-slate-400">
+								Registrado por {registro.usuario?.nombreCompleto ?? "un usuario ya no disponible"}
+							</p>
 						</li>
 					))}
 				</ul>

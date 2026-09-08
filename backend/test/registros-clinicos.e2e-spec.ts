@@ -7,7 +7,11 @@ import { cleanDatabase } from './utils/clean-database.js';
 
 const REGISTRAR_INTERVENCION = `
   mutation RegistrarIntervencionMedica($data: CreateRegistroClinicoInput!) {
-    registrarIntervencionMedica(data: $data) { id gatoId tipo diagnostico }
+    registrarIntervencionMedica(data: $data) {
+      id gatoId tipo diagnostico
+      usuarioId
+      usuario { id nombreCompleto }
+    }
   }
 `;
 
@@ -21,12 +25,15 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let token: string;
+  let usuarioId: number;
   let gatoId: number;
 
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerUserOrThrow(app));
+    const registro = await registerUserOrThrow(app);
+    token = registro.token;
+    usuarioId = Number(registro.usuario.id);
 
     const colonia = await prisma.colonia.create({
       data: {
@@ -72,6 +79,10 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
     expect(res.body.errors).toBeUndefined();
     expect(res.body.data.registrarIntervencionMedica.tipo).toBe('ESTERILIZACION');
 
+    // El autor sale del JWT de quien hace la petición, no de `data` (que no lo incluye).
+    expect(res.body.data.registrarIntervencionMedica.usuarioId).toBe(usuarioId);
+    expect(res.body.data.registrarIntervencionMedica.usuario.id).toBe(String(usuarioId));
+
     const gatoEnBaseDeDatos = await prisma.gato.findUnique({ where: { id: gatoId } });
     expect(gatoEnBaseDeDatos?.estadoCer).toBe('ESTERILIZADO');
 
@@ -79,6 +90,7 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
       where: { id: Number(res.body.data.registrarIntervencionMedica.id) },
     });
     expect(registroEnBaseDeDatos?.diagnostico).toBe('Intervención sin incidencias');
+    expect(registroEnBaseDeDatos?.usuarioId).toBe(usuarioId);
   });
 
   it('registrosClinicos devuelve el historial del gato', async () => {

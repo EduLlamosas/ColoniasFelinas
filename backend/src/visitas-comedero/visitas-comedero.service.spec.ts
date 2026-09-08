@@ -19,11 +19,11 @@ describe('VisitasComederoService', () => {
     service = new VisitasComederoService(prisma as unknown as PrismaService);
   });
 
-  it('create() persiste la visita con los datos recibidos', async () => {
+  it('create() persiste la visita con los datos recibidos y el usuarioId por separado', async () => {
     const data = { comederoId: 1, piensoSeco: true, agua: true };
-    prisma.visitaComedero.create.mockResolvedValue({ id: 1, ...data });
-    await service.create(data as never);
-    expect(prisma.visitaComedero.create).toHaveBeenCalledWith({ data });
+    prisma.visitaComedero.create.mockResolvedValue({ id: 1, ...data, usuarioId: 7 });
+    await service.create(data as never, 7);
+    expect(prisma.visitaComedero.create).toHaveBeenCalledWith({ data: { ...data, usuarioId: 7 } });
   });
 
   it('findByComedero() filtra por comederoId y ordena por fecha descendente', async () => {

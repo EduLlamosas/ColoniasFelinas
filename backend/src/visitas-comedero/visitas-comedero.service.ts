@@ -7,8 +7,8 @@ import { CreateVisitaComederoInput } from './dto/create-visita-comedero.input.js
 export class VisitasComederoService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: CreateVisitaComederoInput) {
-    return this.prisma.visitaComedero.create({ data }).catch(handlePrismaError);
+  create(data: CreateVisitaComederoInput, usuarioId: number) {
+    return this.prisma.visitaComedero.create({ data: { ...data, usuarioId } }).catch(handlePrismaError);
   }
 
   findByComedero(comederoId: number) {

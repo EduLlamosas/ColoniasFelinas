@@ -43,6 +43,8 @@ export interface Comedero {
 export interface VisitaComedero {
 	id: string;
 	comederoId: number;
+	usuarioId: number | null;
+	usuario: Pick<Usuario, "id" | "nombreCompleto"> | null;
 	piensoSeco: boolean;
 	comidaHumeda: boolean;
 	agua: boolean;
@@ -70,6 +72,8 @@ export interface Gato {
 export interface RegistroClinico {
 	id: string;
 	gatoId: number;
+	usuarioId: number | null;
+	usuario: Pick<Usuario, "id" | "nombreCompleto"> | null;
 	tipo: TipoEventoClinico;
 	fecha: string;
 	diagnostico: string;

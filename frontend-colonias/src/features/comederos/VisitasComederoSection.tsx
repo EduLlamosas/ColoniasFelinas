@@ -135,6 +135,9 @@ export function VisitasComederoSection({ comederoId }: VisitasComederoSectionPro
 								</span>
 							</div>
 							{visita.observaciones && <p className="text-slate-600">{visita.observaciones}</p>}
+							<p className="text-xs text-slate-400">
+								Registrado por {visita.usuario?.nombreCompleto ?? "un usuario ya no disponible"}
+							</p>
 						</li>
 					))}
 				</ul>

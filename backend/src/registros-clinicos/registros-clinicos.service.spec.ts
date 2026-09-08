@@ -30,9 +30,9 @@ describe('RegistrosClinicosService', () => {
       diagnostico: 'Sin incidencias',
       nuevoEstadoCer: 'ESTERILIZADO',
     };
-    prisma.tx.registroClinico.create.mockResolvedValue({ id: 1, ...data });
+    prisma.tx.registroClinico.create.mockResolvedValue({ id: 1, ...data, usuarioId: 7 });
 
-    await service.create(data as never);
+    await service.create(data as never, 7);
 
     expect(prisma.tx.gato.update).toHaveBeenCalledWith({
       where: { id: 1 },
@@ -41,6 +41,7 @@ describe('RegistrosClinicosService', () => {
     expect(prisma.tx.registroClinico.create).toHaveBeenCalledWith({
       data: {
         gatoId: 1,
+        usuarioId: 7,
         tipo: 'ESTERILIZACION',
         fecha: new Date('2026-01-01'),
         diagnostico: 'Sin incidencias',

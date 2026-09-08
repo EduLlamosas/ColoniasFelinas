@@ -7,7 +7,10 @@ import { CreateRegistroClinicoInput } from './dto/create-registro-clinico.input.
 export class RegistrosClinicosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create({ gatoId, tipo, fecha, diagnostico, nuevoEstadoCer }: CreateRegistroClinicoInput) {
+  create(
+    { gatoId, tipo, fecha, diagnostico, nuevoEstadoCer }: CreateRegistroClinicoInput,
+    usuarioId: number,
+  ) {
     // new Date(fecha): @IsDateString() acepta tanto "2026-01-15" como un ISO completo, pero
     // el DateTime de Prisma exige el ISO completo - Date normaliza cualquiera de los dos.
     // Transacción atómica: el nuevo registro clínico y el cambio de estado_cer del gato
@@ -16,7 +19,7 @@ export class RegistrosClinicosService {
       .$transaction(async (tx) => {
         await tx.gato.update({ where: { id: gatoId }, data: { estadoCer: nuevoEstadoCer } });
         return tx.registroClinico.create({
-          data: { gatoId, tipo, fecha: new Date(fecha), diagnostico },
+          data: { gatoId, usuarioId, tipo, fecha: new Date(fecha), diagnostico },
         });
       })
       .catch(handlePrismaError);

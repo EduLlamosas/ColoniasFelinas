@@ -4,6 +4,11 @@ export const VISITA_COMEDERO_FIELDS = gql`
 	fragment VisitaComederoFields on VisitaComedero {
 		id
 		comederoId
+		usuarioId
+		usuario {
+			id
+			nombreCompleto
+		}
 		piensoSeco
 		comidaHumeda
 		agua

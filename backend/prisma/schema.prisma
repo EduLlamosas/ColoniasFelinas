@@ -48,6 +48,9 @@ model Usuario {
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 
+  visitasComedero   VisitaComedero[]
+  registrosClinicos RegistroClinico[]
+
   @@map("usuarios")
 }
 
@@ -88,6 +91,11 @@ model Comedero {
 model VisitaComedero {
   id            Int      @id @default(autoincrement())
   comederoId    Int      @map("comedero_id")
+  // Nullable a nivel de columna solo para no romper filas ya existentes al añadir el campo
+  // (ALTER TABLE ADD COLUMN NOT NULL falla contra una tabla con datos sin un default). El
+  // resolver SIEMPRE lo rellena a partir del JWT en toda escritura nueva - nunca es un campo
+  // que el cliente pueda mandar, así nadie puede registrar un evento en nombre de otro usuario.
+  usuarioId     Int?     @map("usuario_id")
   piensoSeco    Boolean  @default(false) @map("pienso_seco")
   comidaHumeda  Boolean  @default(false) @map("comida_humeda")
   agua          Boolean  @default(false)
@@ -95,6 +103,7 @@ model VisitaComedero {
   createdAt     DateTime @default(now()) @map("created_at")
 
   comedero Comedero @relation(fields: [comederoId], references: [id], onDelete: Cascade)
+  usuario  Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
 
   @@index([comederoId])
   @@map("visitas_comedero")
@@ -126,12 +135,16 @@ model Gato {
 model RegistroClinico {
   id          Int               @id @default(autoincrement())
   gatoId      Int               @map("gato_id")
+  // Mismo motivo que en VisitaComedero.usuarioId: nullable en columna, siempre relleno en la
+  // práctica porque el resolver lo saca del JWT, nunca del cliente.
+  usuarioId   Int?              @map("usuario_id")
   tipo        TipoEventoClinico
   fecha       DateTime
   diagnostico String
   createdAt   DateTime          @default(now()) @map("created_at")
 
-  gato Gato @relation(fields: [gatoId], references: [id], onDelete: Cascade)
+  gato    Gato     @relation(fields: [gatoId], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
 
   @@index([gatoId])
   @@map("registros_clinicos")

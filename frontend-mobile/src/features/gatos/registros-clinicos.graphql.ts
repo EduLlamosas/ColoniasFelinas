@@ -4,6 +4,11 @@ export const REGISTRO_CLINICO_FIELDS = gql`
 	fragment RegistroClinicoFields on RegistroClinico {
 		id
 		gatoId
+		usuarioId
+		usuario {
+			id
+			nombreCompleto
+		}
 		tipo
 		fecha
 		diagnostico

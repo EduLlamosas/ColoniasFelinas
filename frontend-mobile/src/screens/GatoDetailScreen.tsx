@@ -252,6 +252,9 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 								<Text style={styles.registroFecha}>{new Date(registro.fecha).toLocaleDateString("es-ES")}</Text>
 							</View>
 							<Text style={styles.registroDiagnostico}>{registro.diagnostico}</Text>
+							<Text style={styles.registroAutor}>
+								Registrado por {registro.usuario?.nombreCompleto ?? "un usuario ya no disponible"}
+							</Text>
 						</View>
 					))
 				)}
@@ -331,4 +334,5 @@ const styles = StyleSheet.create({
 	registroTipo: { fontSize: 13, fontWeight: "600", color: "#0f172a" },
 	registroFecha: { fontSize: 12, color: "#64748b" },
 	registroDiagnostico: { fontSize: 13, color: "#334155", marginTop: 4 },
+	registroAutor: { fontSize: 11, color: "#94a3b8", marginTop: 4 },
 });

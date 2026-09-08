@@ -7,7 +7,11 @@ import { cleanDatabase } from './utils/clean-database.js';
 
 const REGISTRAR_VISITA = `
   mutation RegistrarVisitaComedero($data: CreateVisitaComederoInput!) {
-    registrarVisitaComedero(data: $data) { id comederoId piensoSeco comidaHumeda agua observaciones }
+    registrarVisitaComedero(data: $data) {
+      id comederoId piensoSeco comidaHumeda agua observaciones
+      usuarioId
+      usuario { id nombreCompleto }
+    }
   }
 `;
 
@@ -27,12 +31,15 @@ describe('VisitasComedero (integración real, e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let token: string;
+  let usuarioId: number;
   let comederoId: number;
 
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerUserOrThrow(app));
+    const registro = await registerUserOrThrow(app);
+    token = registro.token;
+    usuarioId = Number(registro.usuario.id);
 
     const colonia = await prisma.colonia.create({
       data: {
@@ -75,10 +82,15 @@ describe('VisitasComedero (integración real, e2e)', () => {
     expect(res.body.data.registrarVisitaComedero.piensoSeco).toBe(true);
     expect(res.body.data.registrarVisitaComedero.comidaHumeda).toBe(false);
 
+    // El autor sale del JWT de quien hace la petición, no de `data` (que no lo incluye).
+    expect(res.body.data.registrarVisitaComedero.usuarioId).toBe(usuarioId);
+    expect(res.body.data.registrarVisitaComedero.usuario.id).toBe(String(usuarioId));
+
     const enBaseDeDatos = await prisma.visitaComedero.findUnique({
       where: { id: Number(res.body.data.registrarVisitaComedero.id) },
     });
     expect(enBaseDeDatos?.observaciones).toBe('Comedero sucio');
+    expect(enBaseDeDatos?.usuarioId).toBe(usuarioId);
   });
 
   it('visitasComedero devuelve la traza registrada', async () => {

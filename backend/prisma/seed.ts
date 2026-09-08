@@ -372,6 +372,7 @@ async function main() {
   for (const data of [
     {
       comederoId: comederoBanco.id,
+      usuarioId: gestor.id,
       piensoSeco: true,
       comidaHumeda: false,
       agua: true,
@@ -380,6 +381,7 @@ async function main() {
     },
     {
       comederoId: comederoBanco.id,
+      usuarioId: gestor.id,
       piensoSeco: true,
       comidaHumeda: true,
       agua: true,
@@ -388,6 +390,7 @@ async function main() {
     },
     {
       comederoId: comederoOlivo.id,
+      usuarioId: admin.id,
       piensoSeco: true,
       comidaHumeda: false,
       agua: false,
@@ -417,18 +420,21 @@ async function main() {
   for (const data of [
     {
       gatoId: gatoGrisaceo.id,
+      usuarioId: admin.id,
       tipo: 'ESTERILIZACION',
       fecha: new Date('2026-05-10'),
       diagnostico: 'Intervención sin incidencias. Recuperación satisfactoria.',
     },
     {
       gatoId: gatoAceituna.id,
+      usuarioId: admin.id,
       tipo: 'ESTERILIZACION',
       fecha: new Date('2026-04-02'),
       diagnostico: 'Esterilización y limpieza dental. Alta veterinaria a los 3 días.',
     },
     {
       gatoId: gatoEstrella.id,
+      usuarioId: gestor.id,
       tipo: 'VACUNACION',
       fecha: new Date('2026-06-18'),
       diagnostico: 'Pauta de vacunación previa a la adopción, sin reacciones adversas.',
