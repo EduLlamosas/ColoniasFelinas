@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
+import { registerAdminOrThrow } from './utils/register-admin.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_ASIGNACION = `
@@ -41,7 +41,7 @@ describe('Asignaciones (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerUserOrThrow(app));
+    ({ token } = await registerAdminOrThrow(app, prisma));
 
     const colonia = await prisma.colonia.create({
       data: {

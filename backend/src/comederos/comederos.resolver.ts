@@ -41,11 +41,14 @@ export class ComederosResolver {
     return this.comederosService.findOne(id);
   }
 
+  // Alta/edición/borrado de datos maestros reservado a ADMINISTRADOR (ver colonias.resolver.ts).
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Comedero)
   createComedero(@Args('data') data: CreateComederoInput) {
     return this.comederosService.create(data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Comedero)
   updateComedero(
     @Args('id', { type: () => ID }) id: string,
@@ -54,6 +57,7 @@ export class ComederosResolver {
     return this.comederosService.update(id, data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Boolean)
   async removeComedero(@Args('id', { type: () => ID }) id: string) {
     await this.comederosService.remove(id);

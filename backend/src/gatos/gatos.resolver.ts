@@ -25,11 +25,14 @@ export class GatosResolver {
     return this.gatosService.findOne(id);
   }
 
+  // Alta/edición/borrado de datos maestros reservado a ADMINISTRADOR (ver colonias.resolver.ts).
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Gato)
   createGato(@Args('data') data: CreateGatoInput) {
     return this.gatosService.create(data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Gato)
   updateGato(
     @Args('id', { type: () => ID }) id: string,
@@ -38,6 +41,7 @@ export class GatosResolver {
     return this.gatosService.update(id, data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Boolean)
   async removeGato(@Args('id', { type: () => ID }) id: string) {
     await this.gatosService.remove(id);

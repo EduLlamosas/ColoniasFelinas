@@ -25,11 +25,17 @@ export class ColoniasResolver {
     return this.coloniasService.findOne(id);
   }
 
+  // Alta/edición/borrado de datos maestros reservado a ADMINISTRADOR: GESTOR se queda en
+  // solo lectura para estas 5 entidades (ver §4.2 de la memoria). Las dos mutaciones que sí
+  // sigue pudiendo usar un GESTOR son las de trabajo de campo (registrarVisitaComedero,
+  // registrarIntervencionMedica), que no tocan este @Roles de clase.
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Colonia)
   createColonia(@Args('data') data: CreateColoniaInput) {
     return this.coloniasService.create(data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Colonia)
   updateColonia(
     @Args('id', { type: () => ID }) id: string,
@@ -38,6 +44,7 @@ export class ColoniasResolver {
     return this.coloniasService.update(id, data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Boolean)
   async removeColonia(@Args('id', { type: () => ID }) id: string) {
     await this.coloniasService.remove(id);

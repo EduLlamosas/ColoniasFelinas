@@ -25,11 +25,14 @@ export class VoluntariosResolver {
     return this.voluntariosService.findOne(id);
   }
 
+  // Alta/edición/borrado de datos maestros reservado a ADMINISTRADOR (ver colonias.resolver.ts).
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Voluntario)
   createVoluntario(@Args('data') data: CreateVoluntarioInput) {
     return this.voluntariosService.create(data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Voluntario)
   updateVoluntario(
     @Args('id', { type: () => ID }) id: string,
@@ -38,6 +41,7 @@ export class VoluntariosResolver {
     return this.voluntariosService.update(id, data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Boolean)
   async removeVoluntario(@Args('id', { type: () => ID }) id: string) {
     await this.voluntariosService.remove(id);

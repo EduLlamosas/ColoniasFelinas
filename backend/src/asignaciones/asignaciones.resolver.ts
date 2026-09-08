@@ -28,11 +28,14 @@ export class AsignacionesResolver {
     return this.asignacionesService.findOne(voluntarioId, coloniaId);
   }
 
+  // Alta/edición/borrado de datos maestros reservado a ADMINISTRADOR (ver colonias.resolver.ts).
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Asignacion)
   createAsignacion(@Args('data') data: CreateAsignacionInput) {
     return this.asignacionesService.create(data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Asignacion)
   updateAsignacion(
     @Args('voluntarioId', { type: () => Int }) voluntarioId: number,
@@ -42,6 +45,7 @@ export class AsignacionesResolver {
     return this.asignacionesService.update(voluntarioId, coloniaId, data);
   }
 
+  @Roles(RolUsuario.ADMINISTRADOR)
   @Mutation(() => Boolean)
   async removeAsignacion(
     @Args('voluntarioId', { type: () => Int }) voluntarioId: number,
