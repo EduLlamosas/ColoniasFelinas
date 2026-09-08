@@ -81,6 +81,7 @@ model Comedero {
   colonia Colonia          @relation(fields: [coloniaId], references: [id], onDelete: Cascade)
   visitas VisitaComedero[]
 
+  @@index([coloniaId])
   @@map("comederos")
 }
 
@@ -95,6 +96,7 @@ model VisitaComedero {
 
   comedero Comedero @relation(fields: [comederoId], references: [id], onDelete: Cascade)
 
+  @@index([comederoId])
   @@map("visitas_comedero")
 }
 
@@ -117,6 +119,7 @@ model Gato {
   colonia           Colonia           @relation(fields: [coloniaId], references: [id], onDelete: Restrict)
   registrosClinicos RegistroClinico[]
 
+  @@index([coloniaId])
   @@map("gatos")
 }
 
@@ -130,6 +133,7 @@ model RegistroClinico {
 
   gato Gato @relation(fields: [gatoId], references: [id], onDelete: Cascade)
 
+  @@index([gatoId])
   @@map("registros_clinicos")
 }
 
