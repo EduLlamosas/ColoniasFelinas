@@ -80,5 +80,10 @@ describe('Uploads (integración real, e2e)', () => {
     const metadata = await sharp(descarga.body as Buffer).metadata();
     expect(metadata.format).toBe('webp');
     expect(metadata.width).toBe(1600); // el ancho máximo del pipeline
+
+    // Nombre de fichero (UUID) generado una vez y nunca reescrito: cachear como "immutable"
+    // durante un año es seguro, y es justo lo que evita repetir esta misma descarga en cada
+    // carga del listado de gatos/comederos/colonias.
+    expect(descarga.headers['cache-control']).toBe('public, max-age=31536000, immutable');
   });
 });

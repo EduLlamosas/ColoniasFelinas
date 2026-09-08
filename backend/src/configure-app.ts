@@ -13,7 +13,16 @@ export function configureApp(app: NestExpressApplication) {
   mkdirSync(uploadsDir, { recursive: true });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
+  // Cada subida genera un nombre de fichero nuevo (UUID, ver uploads.controller.ts) y una
+  // edición borra el fichero viejo en vez de sobrescribirlo (ver deleteUploadedFile en los
+  // *.service.ts) - una URL de /uploads/ nunca cambia de contenido bajo el mismo nombre, así
+  // que cachearla un año como "immutable" es seguro: el navegador ni siquiera revalida con un
+  // 304, deja de pedir la miniatura al backend hasta que expire.
+  app.useStaticAssets(uploadsDir, {
+    prefix: '/uploads/',
+    maxAge: '1y',
+    immutable: true,
+  });
 
   // contentSecurityPolicy: false porque esta API no sirve HTML propio (solo GraphQL/JSON y
   // los estáticos de /uploads/) - el CSP por defecto de helmet solo protegería un documento
