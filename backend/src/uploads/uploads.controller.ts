@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Controller,
   HttpException,
+  Logger,
   Post,
   UploadedFile,
   UseGuards,
@@ -28,11 +29,14 @@ const WEBP_QUALITY = 80;
 // en un volumen de 40GB esto deja de aceptar subidas a partir de ~38GB usados.
 const DEFAULT_MIN_FREE_DISK_MB = 2048;
 const INSUFFICIENT_STORAGE = 507;
+const SERVICE_UNAVAILABLE = 503;
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
 @Controller('uploads')
 export class UploadsController {
+  private readonly logger = new Logger(UploadsController.name);
+
   constructor(private readonly config: ConfigService) {}
 
   @Post()
@@ -61,7 +65,22 @@ export class UploadsController {
       (Number(this.config.get<string>('MIN_FREE_DISK_MB')) || DEFAULT_MIN_FREE_DISK_MB) *
       1024 *
       1024;
-    if ((await getFreeDiskBytes()) < minFreeBytes) {
+
+    let freeBytes: number;
+    try {
+      freeBytes = await getFreeDiskBytes();
+    } catch (error) {
+      // Un fallo al consultar el disco (montaje no disponible, permisos...) no debe colarse
+      // como un 500 genérico: es un error de infraestructura distinto de "disco lleno", y
+      // aquí es donde hay que dejarlo controlado y con traza, antes de arriesgarse a escribir
+      // un fichero sin saber si hay sitio.
+      this.logger.error('No se pudo comprobar el espacio libre en disco antes de subir', error);
+      throw new HttpException(
+        'No se pudo comprobar el espacio disponible en el servidor; inténtalo de nuevo en unos minutos',
+        SERVICE_UNAVAILABLE,
+      );
+    }
+    if (freeBytes < minFreeBytes) {
       throw new HttpException(
         'Almacenamiento lleno: no se pueden subir más imágenes por ahora',
         INSUFFICIENT_STORAGE,

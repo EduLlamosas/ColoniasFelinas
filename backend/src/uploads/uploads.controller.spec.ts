@@ -64,6 +64,17 @@ describe('UploadsController', () => {
     expect(writeFile).not.toHaveBeenCalled();
   });
 
+  it('lanza HttpException 503 (no 500 genérico) si falla la propia comprobación de disco', async () => {
+    vi.mocked(statfs).mockRejectedValueOnce(new Error('ENOENT: no such file or directory'));
+    const controller = new UploadsController(createConfigMock());
+    const file = createMulterFile(Buffer.from('no importa, no debería llegar a procesarse'));
+
+    const promise = controller.upload(file);
+    await expect(promise).rejects.toThrow(HttpException);
+    await expect(promise).rejects.toMatchObject({ status: 503 });
+    expect(writeFile).not.toHaveBeenCalled();
+  });
+
   it('no agranda una imagen más pequeña que el ancho máximo', async () => {
     const original = await sharp({
       create: { width: 400, height: 300, channels: 3, background: { r: 1, g: 2, b: 3 } },
