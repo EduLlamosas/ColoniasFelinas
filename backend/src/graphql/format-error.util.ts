@@ -9,6 +9,7 @@ import type { GraphQLFormattedError } from 'graphql';
 const CODE_BY_STATUS: Record<number, string> = {
   404: 'NOT_FOUND',
   409: 'CONFLICT',
+  429: 'RATE_LIMITED',
 };
 
 export function formatGraphqlError(formattedError: GraphQLFormattedError): GraphQLFormattedError {

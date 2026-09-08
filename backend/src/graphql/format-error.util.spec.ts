@@ -16,6 +16,11 @@ describe('formatGraphqlError', () => {
     expect(result.extensions?.code).toBe('CONFLICT');
   });
 
+  it('traduce status 429 (genérico) a code RATE_LIMITED', () => {
+    const result = formatGraphqlError(makeError({ code: 'INTERNAL_SERVER_ERROR', status: 429 }));
+    expect(result.extensions?.code).toBe('RATE_LIMITED');
+  });
+
   it('no toca errores ya bien traducidos por @nestjs/apollo (400, 401, 403)', () => {
     const badRequest = makeError({ code: 'BAD_REQUEST', status: 400 });
     expect(formatGraphqlError(badRequest).extensions?.code).toBe('BAD_REQUEST');

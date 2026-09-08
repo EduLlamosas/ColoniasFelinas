@@ -3,6 +3,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { Module } from '@nestjs/common';
+import { ThrottlerModule } from '@nestjs/throttler';
 import depthLimit from 'graphql-depth-limit';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -36,12 +37,23 @@ const MAX_QUERY_DEPTH = 8;
 // query-complexity.plugin.ts para por qué esto es un plugin de Apollo y no una validationRule más.
 const MAX_QUERY_COMPLEXITY = 150;
 
+// Límite de fuerza bruta sobre login/register (AuthResolver, ver GqlThrottlerGuard): 5 intentos
+// por minuto y por IP. Generoso para un usuario real que se equivoca de contraseña un par de
+// veces, inútil para un ataque de diccionario (300 intentos/hora como máximo en vez de miles por
+// segundo). @Global() en ThrottlerModule: basta con importarlo aquí una vez para que el guard
+// funcione en cualquier resolver que lo use, sin tener que volver a registrar nada por módulo.
+const AUTH_RATE_LIMIT_TTL_MS = 60_000;
+const AUTH_RATE_LIMIT_MAX_ATTEMPTS = 5;
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: AUTH_RATE_LIMIT_TTL_MS, limit: AUTH_RATE_LIMIT_MAX_ATTEMPTS },
+    ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
