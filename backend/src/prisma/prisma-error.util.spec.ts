@@ -22,6 +22,26 @@ describe('handlePrismaError', () => {
     expect(() => handlePrismaError(error)).toThrow(ConflictException);
   });
 
+  it('P2002 traduce el nombre de columna real (snake_case) a una etiqueta en español, sin filtrarlo', () => {
+    const error = makePrismaError('P2002', { target: ['num_microchip'] });
+    expect(() => handlePrismaError(error)).toThrow(/número de microchip/);
+    try {
+      handlePrismaError(error);
+    } catch (e) {
+      expect((e as ConflictException).message).not.toMatch(/num_microchip/);
+    }
+  });
+
+  it('P2002 sobre una clave compuesta traduce cada columna del target', () => {
+    const error = makePrismaError('P2002', { target: ['voluntario_id', 'colonia_id'] });
+    expect(() => handlePrismaError(error)).toThrow(/voluntario, colonia/);
+  });
+
+  it('P2002 sobre una columna sin etiqueta mapeada cae de vuelta al nombre de columna tal cual', () => {
+    const error = makePrismaError('P2002', { target: ['columna_futura_sin_mapear'] });
+    expect(() => handlePrismaError(error)).toThrow(/columna_futura_sin_mapear/);
+  });
+
   it('traduce P2003 (FK inválida o restringida) a BadRequestException', () => {
     const error = makePrismaError('P2003');
     expect(() => handlePrismaError(error)).toThrow(BadRequestException);
