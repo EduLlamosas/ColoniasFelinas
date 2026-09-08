@@ -15,7 +15,7 @@ type Props = ColoniasStackScreenProps<"ColoniasList">;
 type View_ = "tabla" | "mapa";
 
 export function ColoniasListScreen({ navigation }: Props) {
-	const { user } = useAuth();
+	const { user, isAdmin } = useAuth();
 	const { data, loading, error, refetch } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
 	const colonias = data?.colonias ?? [];
 	const [view, setView] = useState<View_>("tabla");
@@ -90,9 +90,11 @@ export function ColoniasListScreen({ navigation }: Props) {
 				/>
 			)}
 
-			<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("ColoniaForm", undefined)}>
-				<Text style={styles.fabText}>+</Text>
-			</TouchableOpacity>
+			{isAdmin && (
+				<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("ColoniaForm", undefined)}>
+					<Text style={styles.fabText}>+</Text>
+				</TouchableOpacity>
+			)}
 		</View>
 	);
 }

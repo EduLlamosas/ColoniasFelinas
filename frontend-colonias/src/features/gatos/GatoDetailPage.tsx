@@ -8,6 +8,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useAuth } from "../auth/useAuth";
 import { ESTADO_CER_BADGE_CLASSES, ESTADO_CER_LABELS, SEXO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
@@ -18,6 +19,7 @@ import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Gato } from "../../types/graphql";
 
 export function GatoDetailPage() {
+	const { isAdmin } = useAuth();
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { data, loading, error } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
@@ -82,16 +84,18 @@ export function GatoDetailPage() {
 						)}
 					</p>
 				</div>
-				<div className="flex gap-2">
-					<Button variant="secondary" onClick={() => setEditOpen(true)}>
-						<PencilSquareIcon className="h-4 w-4" />
-						Editar
-					</Button>
-					<Button variant="danger" onClick={() => setPendingDelete(true)}>
-						<TrashIcon className="h-4 w-4" />
-						Eliminar
-					</Button>
-				</div>
+				{isAdmin && (
+					<div className="flex gap-2">
+						<Button variant="secondary" onClick={() => setEditOpen(true)}>
+							<PencilSquareIcon className="h-4 w-4" />
+							Editar
+						</Button>
+						<Button variant="danger" onClick={() => setPendingDelete(true)}>
+							<TrashIcon className="h-4 w-4" />
+							Eliminar
+						</Button>
+					</div>
+				)}
 			</div>
 
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

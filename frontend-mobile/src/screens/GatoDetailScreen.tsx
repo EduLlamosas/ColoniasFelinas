@@ -16,6 +16,7 @@ import {
 	REGISTROS_CLINICOS_QUERY,
 } from "../features/gatos/registros-clinicos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ESTADO_CER_LABELS, SEXO_LABELS, TIPO_EVENTO_CLINICO_LABELS } from "../lib/enums";
@@ -31,6 +32,7 @@ const ESTADO_CER_VALUES = Object.keys(ESTADO_CER_LABELS) as EstadoCer[];
 // historial (no se edita ni se borra, es trazabilidad clínica inalterable) y, en la misma
 // transacción del backend, actualiza el estado_cer del gato - por eso refrescamos también Gatos.
 export function GatoDetailScreen({ route, navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { id } = route.params;
 	const { data, loading, error } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
 	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
@@ -117,9 +119,11 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 				<TouchableOpacity onPress={() => navigation.goBack()}>
 					<Text style={styles.back}>‹ Gatos</Text>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={() => navigation.navigate("GatoForm", { id: gato.id })}>
-					<Text style={styles.edit}>Editar</Text>
-				</TouchableOpacity>
+				{isAdmin && (
+					<TouchableOpacity onPress={() => navigation.navigate("GatoForm", { id: gato.id })}>
+						<Text style={styles.edit}>Editar</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 
 			{gato.fotoUrl ? (

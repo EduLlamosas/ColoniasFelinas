@@ -17,6 +17,7 @@ import {
 	REMOVE_ASIGNACION_MUTATION,
 } from "../features/asignaciones/asignaciones.graphql";
 import { VOLUNTARIOS_QUERY } from "../features/voluntarios/voluntarios.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ESTADO_CER_LABELS, SEXO_LABELS, TIPO_SUELO_LABELS } from "../lib/enums";
@@ -27,6 +28,7 @@ import type { ColoniasStackScreenProps } from "../navigation/types";
 type Props = ColoniasStackScreenProps<"ColoniaDetail">;
 
 export function ColoniaDetailScreen({ route, navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { id } = route.params;
 	const { data: coloniasData, loading: loadingColonia, error: coloniaError } = useQuery<{ colonias: Colonia[] }>(
 		COLONIAS_QUERY,
@@ -100,9 +102,11 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				<TouchableOpacity onPress={() => navigation.goBack()}>
 					<Text style={styles.back}>‹ Colonias</Text>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={() => navigation.navigate("ColoniaForm", { id: colonia.id })}>
-					<Text style={styles.edit}>Editar</Text>
-				</TouchableOpacity>
+				{isAdmin && (
+					<TouchableOpacity onPress={() => navigation.navigate("ColoniaForm", { id: colonia.id })}>
+						<Text style={styles.edit}>Editar</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 
 			{colonia.fotoUrl ? (
@@ -157,11 +161,13 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				<Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
 					Voluntarios asignados ({loadingAsignaciones ? "…" : asignaciones.length})
 				</Text>
-				<TouchableOpacity
-					onPress={() => navigation.navigate("VoluntariosTab", { screen: "AsignacionForm", params: { coloniaId: id } })}
-				>
-					<Text style={styles.assignLink}>Asignar</Text>
-				</TouchableOpacity>
+				{isAdmin && (
+					<TouchableOpacity
+						onPress={() => navigation.navigate("VoluntariosTab", { screen: "AsignacionForm", params: { coloniaId: id } })}
+					>
+						<Text style={styles.assignLink}>Asignar</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 			{asignaciones.length === 0 && !loadingAsignaciones && (
 				<Text style={styles.emptySection}>Sin voluntarios asignados a esta colonia.</Text>
@@ -170,19 +176,25 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				<View key={asignacion.voluntarioId} style={[styles.itemRow, styles.assignmentRow]}>
 					<TouchableOpacity
 						style={styles.itemRowMain}
-						onPress={() =>
-							navigation.navigate("VoluntariosTab", {
-								screen: "AsignacionForm",
-								params: { voluntarioId: String(asignacion.voluntarioId), coloniaId: id },
-							})
+						disabled={!isAdmin}
+						onPress={
+							isAdmin
+								? () =>
+										navigation.navigate("VoluntariosTab", {
+											screen: "AsignacionForm",
+											params: { voluntarioId: String(asignacion.voluntarioId), coloniaId: id },
+										})
+								: undefined
 						}
 					>
 						<Text style={styles.itemTitle}>{voluntariosById.get(String(asignacion.voluntarioId))?.nombre ?? "—"}</Text>
 						<Text style={styles.itemSubtitle}>{asignacion.rolAsignado}</Text>
 					</TouchableOpacity>
-					<TouchableOpacity onPress={() => confirmRemove(asignacion)}>
-						<Text style={styles.removeLink}>Quitar</Text>
-					</TouchableOpacity>
+					{isAdmin && (
+						<TouchableOpacity onPress={() => confirmRemove(asignacion)}>
+							<Text style={styles.removeLink}>Quitar</Text>
+						</TouchableOpacity>
+					)}
 				</View>
 			))}
 		</ScrollView>

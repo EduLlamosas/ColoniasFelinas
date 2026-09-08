@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Image, RefreshControl, ScrollView, StyleSh
 import { useQuery } from "@apollo/client/react";
 import { GATOS_QUERY } from "../features/gatos/gatos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ESTADO_CER_LABELS, SEXO_LABELS } from "../lib/enums";
@@ -13,6 +14,7 @@ import type { GatosStackScreenProps } from "../navigation/types";
 type Props = GatosStackScreenProps<"GatosList">;
 
 export function GatosListScreen({ navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { data, loading, error, refetch } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
 	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
@@ -89,9 +91,11 @@ export function GatosListScreen({ navigation }: Props) {
 				)}
 			/>
 
-			<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("GatoForm", undefined)}>
-				<Text style={styles.fabText}>+</Text>
-			</TouchableOpacity>
+			{isAdmin && (
+				<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("GatoForm", undefined)}>
+					<Text style={styles.fabText}>+</Text>
+				</TouchableOpacity>
+			)}
 		</View>
 	);
 }

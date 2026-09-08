@@ -1,6 +1,7 @@
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useQuery } from "@apollo/client/react";
 import { VOLUNTARIOS_QUERY } from "../features/voluntarios/voluntarios.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { ScreenHeader } from "../components/ScreenHeader";
 import type { Voluntario } from "../types/graphql";
@@ -9,6 +10,7 @@ import type { VoluntariosStackScreenProps } from "../navigation/types";
 type Props = VoluntariosStackScreenProps<"VoluntariosList">;
 
 export function VoluntariosListScreen({ navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { data, loading, error, refetch } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
 	const voluntarios = data?.voluntarios ?? [];
 
@@ -55,9 +57,11 @@ export function VoluntariosListScreen({ navigation }: Props) {
 				)}
 			/>
 
-			<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("VoluntarioForm", undefined)}>
-				<Text style={styles.fabText}>+</Text>
-			</TouchableOpacity>
+			{isAdmin && (
+				<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("VoluntarioForm", undefined)}>
+					<Text style={styles.fabText}>+</Text>
+				</TouchableOpacity>
+			)}
 		</View>
 	);
 }

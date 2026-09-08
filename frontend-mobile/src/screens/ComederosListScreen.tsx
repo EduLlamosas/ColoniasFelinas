@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, Image, RefreshControl, ScrollView, StyleSh
 import { useQuery } from "@apollo/client/react";
 import { COMEDEROS_QUERY } from "../features/comederos/comederos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ScreenHeader } from "../components/ScreenHeader";
@@ -12,6 +13,7 @@ import type { ComederosStackScreenProps } from "../navigation/types";
 type Props = ComederosStackScreenProps<"ComederosList">;
 
 export function ComederosListScreen({ navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { data, loading, error, refetch } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
@@ -85,9 +87,11 @@ export function ComederosListScreen({ navigation }: Props) {
 				)}
 			/>
 
-			<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("ComederoForm", undefined)}>
-				<Text style={styles.fabText}>+</Text>
-			</TouchableOpacity>
+			{isAdmin && (
+				<TouchableOpacity style={styles.fab} onPress={() => navigation.navigate("ComederoForm", undefined)}>
+					<Text style={styles.fabText}>+</Text>
+				</TouchableOpacity>
+			)}
 		</View>
 	);
 }

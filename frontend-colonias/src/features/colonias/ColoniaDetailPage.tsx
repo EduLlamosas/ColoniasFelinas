@@ -8,6 +8,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
+import { useAuth } from "../auth/useAuth";
 import { ESTADO_CER_BADGE_CLASSES, ESTADO_CER_LABELS, TIPO_SUELO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
@@ -24,6 +25,7 @@ import { VOLUNTARIOS_QUERY } from "../voluntarios/voluntarios.graphql";
 import type { Asignacion, Comedero, Gato, Voluntario } from "../../types/graphql";
 
 export function ColoniaDetailPage() {
+	const { isAdmin } = useAuth();
 	const { id } = useParams<{ id: string }>();
 	const { byId, loading: loadingColonias, error: coloniasError } = useColoniasLookup();
 	const colonia = id ? byId.get(id) : undefined;
@@ -78,10 +80,12 @@ export function ColoniaDetailPage() {
 						{colonia.codigoOficial} · {TIPO_SUELO_LABELS[colonia.tipoSuelo]}
 					</p>
 				</div>
-				<Button variant="secondary" onClick={() => setEditOpen(true)}>
-					<PencilSquareIcon className="h-4 w-4" />
-					Editar colonia
-				</Button>
+				{isAdmin && (
+					<Button variant="secondary" onClick={() => setEditOpen(true)}>
+						<PencilSquareIcon className="h-4 w-4" />
+						Editar colonia
+					</Button>
+				)}
 			</div>
 
 			<div className="mb-8 flex max-w-md items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
@@ -114,10 +118,12 @@ export function ColoniaDetailPage() {
 			<section className="mb-8">
 				<div className="mb-3 flex items-center justify-between">
 					<h2 className="text-sm font-semibold text-slate-900">Gatos censados ({gatos.length})</h2>
-					<Button variant="secondary" onClick={() => setGatoFormOpen(true)}>
-						<PlusIcon className="h-4 w-4" />
-						Añadir gato
-					</Button>
+					{isAdmin && (
+						<Button variant="secondary" onClick={() => setGatoFormOpen(true)}>
+							<PlusIcon className="h-4 w-4" />
+							Añadir gato
+						</Button>
+					)}
 				</div>
 				{loadingGatos ? (
 					<Spinner size="sm" />
@@ -158,10 +164,12 @@ export function ColoniaDetailPage() {
 			<section className="mb-8">
 				<div className="mb-3 flex items-center justify-between">
 					<h2 className="text-sm font-semibold text-slate-900">Comederos ({comederos.length})</h2>
-					<Button variant="secondary" onClick={() => setComederoFormOpen(true)}>
-						<PlusIcon className="h-4 w-4" />
-						Añadir comedero
-					</Button>
+					{isAdmin && (
+						<Button variant="secondary" onClick={() => setComederoFormOpen(true)}>
+							<PlusIcon className="h-4 w-4" />
+							Añadir comedero
+						</Button>
+					)}
 				</div>
 				{loadingComederos ? (
 					<Spinner size="sm" />
@@ -194,10 +202,12 @@ export function ColoniaDetailPage() {
 			<section>
 				<div className="mb-3 flex items-center justify-between">
 					<h2 className="text-sm font-semibold text-slate-900">Voluntarios asignados ({asignaciones.length})</h2>
-					<Button variant="secondary" onClick={() => setAsignacionFormOpen(true)}>
-						<PlusIcon className="h-4 w-4" />
-						Asignar voluntario
-					</Button>
+					{isAdmin && (
+						<Button variant="secondary" onClick={() => setAsignacionFormOpen(true)}>
+							<PlusIcon className="h-4 w-4" />
+							Asignar voluntario
+						</Button>
+					)}
 				</div>
 				{loadingAsignaciones ? (
 					<Spinner size="sm" />

@@ -9,6 +9,7 @@ import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
+import { useAuth } from "../auth/useAuth";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
 import { VOLUNTARIOS_QUERY, REMOVE_VOLUNTARIO_MUTATION } from "./voluntarios.graphql";
@@ -19,6 +20,7 @@ import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Asignacion, Voluntario } from "../../types/graphql";
 
 export function VoluntarioDetailPage() {
+	const { isAdmin } = useAuth();
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { data, loading, error } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
@@ -79,16 +81,18 @@ export function VoluntarioDetailPage() {
 					<h1 className="text-xl font-semibold text-slate-900">{voluntario.nombre}</h1>
 					<p className="mt-1 text-sm text-slate-500">{voluntario.dni}</p>
 				</div>
-				<div className="flex gap-2">
-					<Button variant="secondary" onClick={() => setEditOpen(true)}>
-						<PencilSquareIcon className="h-4 w-4" />
-						Editar
-					</Button>
-					<Button variant="danger" onClick={() => setPendingDelete(true)}>
-						<TrashIcon className="h-4 w-4" />
-						Eliminar
-					</Button>
-				</div>
+				{isAdmin && (
+					<div className="flex gap-2">
+						<Button variant="secondary" onClick={() => setEditOpen(true)}>
+							<PencilSquareIcon className="h-4 w-4" />
+							Editar
+						</Button>
+						<Button variant="danger" onClick={() => setPendingDelete(true)}>
+							<TrashIcon className="h-4 w-4" />
+							Eliminar
+						</Button>
+					</div>
+				)}
 			</div>
 
 			<div className="mb-8 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -122,9 +126,11 @@ export function VoluntarioDetailPage() {
 			<section>
 				<div className="mb-3 flex items-center justify-between">
 					<h2 className="text-sm font-semibold text-slate-900">Colonias asignadas ({asignaciones.length})</h2>
-					<Button variant="secondary" onClick={() => setAsignacionFormOpen(true)}>
-						Asignar a una colonia
-					</Button>
+					{isAdmin && (
+						<Button variant="secondary" onClick={() => setAsignacionFormOpen(true)}>
+							Asignar a una colonia
+						</Button>
+					)}
 				</div>
 				{loadingAsignaciones ? (
 					<Spinner size="sm" />

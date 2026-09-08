@@ -7,6 +7,7 @@ import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useAuth } from "../auth/useAuth";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
 import { COMEDEROS_QUERY, REMOVE_COMEDERO_MUTATION } from "./comederos.graphql";
@@ -16,6 +17,7 @@ import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Comedero } from "../../types/graphql";
 
 export function ComederoDetailPage() {
+	const { isAdmin } = useAuth();
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 	const { data, loading, error } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
@@ -84,16 +86,18 @@ export function ComederoDetailPage() {
 						{comedero.ultimaVisita ? new Date(comedero.ultimaVisita).toLocaleString("es-ES") : "Sin visitas registradas"}
 					</p>
 				</div>
-				<div className="flex gap-2">
-					<Button variant="secondary" onClick={() => setEditOpen(true)}>
-						<PencilSquareIcon className="h-4 w-4" />
-						Editar
-					</Button>
-					<Button variant="danger" onClick={() => setPendingDelete(true)}>
-						<TrashIcon className="h-4 w-4" />
-						Eliminar
-					</Button>
-				</div>
+				{isAdmin && (
+					<div className="flex gap-2">
+						<Button variant="secondary" onClick={() => setEditOpen(true)}>
+							<PencilSquareIcon className="h-4 w-4" />
+							Editar
+						</Button>
+						<Button variant="danger" onClick={() => setPendingDelete(true)}>
+							<TrashIcon className="h-4 w-4" />
+							Eliminar
+						</Button>
+					</div>
+				)}
 			</div>
 
 			<div className="flex max-w-md items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">

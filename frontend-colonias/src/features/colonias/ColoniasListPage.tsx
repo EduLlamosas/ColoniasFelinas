@@ -9,6 +9,7 @@ import { Alert } from "../../components/ui/Alert";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
+import { useAuth } from "../auth/useAuth";
 import { TIPO_SUELO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
@@ -21,6 +22,7 @@ import type { Colonia } from "../../types/graphql";
 type View = "tabla" | "mapa";
 
 export function ColoniasListPage() {
+	const { isAdmin } = useAuth();
 	const { colonias, loading, error } = useColoniasLookup();
 	const [view, setView] = useState<View>("tabla");
 	const [editingColonia, setEditingColonia] = useState<Colonia | undefined>(undefined);
@@ -81,10 +83,12 @@ export function ColoniasListPage() {
 								Mapa
 							</button>
 						</div>
-						<Button onClick={openCreate}>
-							<PlusIcon className="h-4 w-4" />
-							Nueva colonia
-						</Button>
+						{isAdmin && (
+							<Button onClick={openCreate}>
+								<PlusIcon className="h-4 w-4" />
+								Nueva colonia
+							</Button>
+						)}
 					</>
 				}
 			/>
@@ -139,20 +143,24 @@ export function ColoniasListPage() {
 										{colonia.latitud.toFixed(5)}, {colonia.longitud.toFixed(5)}
 									</td>
 									<td className={`${tdClass} text-right`}>
-										<button
-											type="button"
-											onClick={() => openEdit(colonia)}
-											className="mr-3 font-medium text-teal-700 hover:underline"
-										>
-											Editar
-										</button>
-										<button
-											type="button"
-											onClick={() => setPendingDelete(colonia)}
-											className="font-medium text-red-600 hover:underline"
-										>
-											Eliminar
-										</button>
+										{isAdmin && (
+											<>
+												<button
+													type="button"
+													onClick={() => openEdit(colonia)}
+													className="mr-3 font-medium text-teal-700 hover:underline"
+												>
+													Editar
+												</button>
+												<button
+													type="button"
+													onClick={() => setPendingDelete(colonia)}
+													className="font-medium text-red-600 hover:underline"
+												>
+													Eliminar
+												</button>
+											</>
+										)}
 									</td>
 								</tr>
 							))}

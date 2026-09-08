@@ -15,6 +15,7 @@ import {
 	REMOVE_ASIGNACION_MUTATION,
 } from "../features/asignaciones/asignaciones.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import type { Asignacion, Colonia, Voluntario } from "../types/graphql";
 import type { VoluntariosStackScreenProps } from "../navigation/types";
@@ -22,6 +23,7 @@ import type { VoluntariosStackScreenProps } from "../navigation/types";
 type Props = VoluntariosStackScreenProps<"VoluntarioDetail">;
 
 export function VoluntarioDetailScreen({ route, navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { id } = route.params;
 	const { data, loading, error } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
 	const { data: asignacionesData, loading: loadingAsignaciones } = useQuery<{ asignaciones: Asignacion[] }>(
@@ -89,9 +91,11 @@ export function VoluntarioDetailScreen({ route, navigation }: Props) {
 				<TouchableOpacity onPress={() => navigation.goBack()}>
 					<Text style={styles.back}>‹ Voluntarios</Text>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={() => navigation.navigate("VoluntarioForm", { id: voluntario.id })}>
-					<Text style={styles.edit}>Editar</Text>
-				</TouchableOpacity>
+				{isAdmin && (
+					<TouchableOpacity onPress={() => navigation.navigate("VoluntarioForm", { id: voluntario.id })}>
+						<Text style={styles.edit}>Editar</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 
 			<Text style={styles.title}>{voluntario.nombre}</Text>
@@ -113,9 +117,11 @@ export function VoluntarioDetailScreen({ route, navigation }: Props) {
 
 			<View style={styles.sectionHeader}>
 				<Text style={styles.sectionTitle}>Colonias asignadas ({loadingAsignaciones ? "…" : asignaciones.length})</Text>
-				<TouchableOpacity onPress={() => navigation.navigate("AsignacionForm", { voluntarioId: id })}>
-					<Text style={styles.assignLink}>Asignar</Text>
-				</TouchableOpacity>
+				{isAdmin && (
+					<TouchableOpacity onPress={() => navigation.navigate("AsignacionForm", { voluntarioId: id })}>
+						<Text style={styles.assignLink}>Asignar</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 
 			{asignaciones.length === 0 && !loadingAsignaciones && (
@@ -125,16 +131,25 @@ export function VoluntarioDetailScreen({ route, navigation }: Props) {
 				<View key={asignacion.coloniaId} style={styles.itemRow}>
 					<TouchableOpacity
 						style={styles.itemRowMain}
-						onPress={() =>
-							navigation.navigate("AsignacionForm", { voluntarioId: id, coloniaId: String(asignacion.coloniaId) })
+						disabled={!isAdmin}
+						onPress={
+							isAdmin
+								? () =>
+										navigation.navigate("AsignacionForm", {
+											voluntarioId: id,
+											coloniaId: String(asignacion.coloniaId),
+										})
+								: undefined
 						}
 					>
 						<Text style={styles.itemTitle}>{coloniasById.get(String(asignacion.coloniaId))?.nombre ?? "—"}</Text>
 						<Text style={styles.itemSubtitle}>{asignacion.rolAsignado}</Text>
 					</TouchableOpacity>
-					<TouchableOpacity onPress={() => confirmRemove(asignacion)}>
-						<Text style={styles.removeLink}>Quitar</Text>
-					</TouchableOpacity>
+					{isAdmin && (
+						<TouchableOpacity onPress={() => confirmRemove(asignacion)}>
+							<Text style={styles.removeLink}>Quitar</Text>
+						</TouchableOpacity>
+					)}
 				</View>
 			))}
 		</ScrollView>

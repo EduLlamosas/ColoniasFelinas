@@ -68,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			user,
 			initializing,
 			isAuthenticated: user !== null,
+			isAdmin: user?.rol === "ADMINISTRADOR",
 			login,
 			logout,
 		}),

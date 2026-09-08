@@ -10,6 +10,7 @@ import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
+import { useAuth } from "../auth/useAuth";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { ASIGNACIONES_QUERY, REMOVE_ASIGNACION_MUTATION } from "./asignaciones.graphql";
 import { VOLUNTARIOS_QUERY } from "../voluntarios/voluntarios.graphql";
@@ -18,6 +19,7 @@ import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Asignacion, Voluntario } from "../../types/graphql";
 
 export function AsignacionesListPage() {
+	const { isAdmin } = useAuth();
 	const { data, loading, error } = useQuery<{ asignaciones: Asignacion[] }>(ASIGNACIONES_QUERY);
 	const { data: voluntariosData } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
 	const { byId: coloniasById } = useColoniasLookup();
@@ -62,10 +64,12 @@ export function AsignacionesListPage() {
 				title="Asignaciones"
 				description="Relación entre voluntarios y las colonias que atienden, con su función."
 				actions={
-					<Button onClick={openCreate}>
-						<PlusIcon className="h-4 w-4" />
-						Nueva asignación
-					</Button>
+					isAdmin && (
+						<Button onClick={openCreate}>
+							<PlusIcon className="h-4 w-4" />
+							Nueva asignación
+						</Button>
+					)
 				}
 			/>
 
@@ -114,20 +118,24 @@ export function AsignacionesListPage() {
 										<Badge className="bg-teal-100 text-teal-800">{asignacion.rolAsignado}</Badge>
 									</td>
 									<td className={`${tdClass} text-right`}>
-										<button
-											type="button"
-											onClick={() => openEdit(asignacion)}
-											className="mr-3 font-medium text-teal-700 hover:underline"
-										>
-											Editar
-										</button>
-										<button
-											type="button"
-											onClick={() => setPendingDelete(asignacion)}
-											className="font-medium text-red-600 hover:underline"
-										>
-											Eliminar
-										</button>
+										{isAdmin && (
+											<>
+												<button
+													type="button"
+													onClick={() => openEdit(asignacion)}
+													className="mr-3 font-medium text-teal-700 hover:underline"
+												>
+													Editar
+												</button>
+												<button
+													type="button"
+													onClick={() => setPendingDelete(asignacion)}
+													className="font-medium text-red-600 hover:underline"
+												>
+													Eliminar
+												</button>
+											</>
+										)}
 									</td>
 								</tr>
 							))}

@@ -10,6 +10,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { Select } from "../../components/ui/Select";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
+import { useAuth } from "../auth/useAuth";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
 import { COMEDEROS_QUERY, REMOVE_COMEDERO_MUTATION } from "./comederos.graphql";
@@ -18,6 +19,7 @@ import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Comedero } from "../../types/graphql";
 
 export function ComederosListPage() {
+	const { isAdmin } = useAuth();
 	const { data, loading, error } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const { byId: coloniasById } = useColoniasLookup();
 	const [coloniaFilter, setColoniaFilter] = useState("");
@@ -61,10 +63,12 @@ export function ComederosListPage() {
 				title="Comederos"
 				description="Puntos de alimentación asociados a cada colonia."
 				actions={
-					<Button onClick={openCreate}>
-						<PlusIcon className="h-4 w-4" />
-						Nuevo comedero
-					</Button>
+					isAdmin && (
+						<Button onClick={openCreate}>
+							<PlusIcon className="h-4 w-4" />
+							Nuevo comedero
+						</Button>
+					)
 				}
 			/>
 
@@ -125,20 +129,24 @@ export function ComederosListPage() {
 										</Link>
 									</td>
 									<td className={`${tdClass} text-right`}>
-										<button
-											type="button"
-											onClick={() => openEdit(comedero)}
-											className="mr-3 font-medium text-teal-700 hover:underline"
-										>
-											Editar
-										</button>
-										<button
-											type="button"
-											onClick={() => setPendingDelete(comedero)}
-											className="font-medium text-red-600 hover:underline"
-										>
-											Eliminar
-										</button>
+										{isAdmin && (
+											<>
+												<button
+													type="button"
+													onClick={() => openEdit(comedero)}
+													className="mr-3 font-medium text-teal-700 hover:underline"
+												>
+													Editar
+												</button>
+												<button
+													type="button"
+													onClick={() => setPendingDelete(comedero)}
+													className="font-medium text-red-600 hover:underline"
+												>
+													Eliminar
+												</button>
+											</>
+										)}
 									</td>
 								</tr>
 							))}

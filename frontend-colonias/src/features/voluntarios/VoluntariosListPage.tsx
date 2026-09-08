@@ -10,6 +10,7 @@ import { Badge } from "../../components/ui/Badge";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { tableClass, tableWrapperClass, tdClass, theadClass, thClass, trClass } from "../../components/ui/table";
+import { useAuth } from "../auth/useAuth";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
 import { VOLUNTARIOS_QUERY, REMOVE_VOLUNTARIO_MUTATION } from "./voluntarios.graphql";
@@ -17,6 +18,7 @@ import { VoluntarioFormModal } from "./VoluntarioFormModal";
 import type { Voluntario } from "../../types/graphql";
 
 export function VoluntariosListPage() {
+	const { isAdmin } = useAuth();
 	const { data, loading, error } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
 	const [editingVoluntario, setEditingVoluntario] = useState<Voluntario | undefined>(undefined);
 	const [formOpen, setFormOpen] = useState(false);
@@ -55,10 +57,12 @@ export function VoluntariosListPage() {
 				title="Voluntarios"
 				description="Ciudadanos colaboradores registrados, con su documento RGPD de cesión de datos."
 				actions={
-					<Button onClick={openCreate}>
-						<PlusIcon className="h-4 w-4" />
-						Nuevo voluntario
-					</Button>
+					isAdmin && (
+						<Button onClick={openCreate}>
+							<PlusIcon className="h-4 w-4" />
+							Nuevo voluntario
+						</Button>
+					)
 				}
 			/>
 
@@ -113,20 +117,24 @@ export function VoluntariosListPage() {
 										)}
 									</td>
 									<td className={`${tdClass} text-right`}>
-										<button
-											type="button"
-											onClick={() => openEdit(voluntario)}
-											className="mr-3 font-medium text-teal-700 hover:underline"
-										>
-											Editar
-										</button>
-										<button
-											type="button"
-											onClick={() => setPendingDelete(voluntario)}
-											className="font-medium text-red-600 hover:underline"
-										>
-											Eliminar
-										</button>
+										{isAdmin && (
+											<>
+												<button
+													type="button"
+													onClick={() => openEdit(voluntario)}
+													className="mr-3 font-medium text-teal-700 hover:underline"
+												>
+													Editar
+												</button>
+												<button
+													type="button"
+													onClick={() => setPendingDelete(voluntario)}
+													className="font-medium text-red-600 hover:underline"
+												>
+													Eliminar
+												</button>
+											</>
+										)}
 									</td>
 								</tr>
 							))}

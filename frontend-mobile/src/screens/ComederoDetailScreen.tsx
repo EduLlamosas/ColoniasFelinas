@@ -16,6 +16,7 @@ import {
 	VISITAS_COMEDERO_QUERY,
 } from "../features/comederos/visitas-comedero.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import type { Colonia, Comedero, VisitaComedero } from "../types/graphql";
@@ -27,6 +28,7 @@ type Props = ComederosStackScreenProps<"ComederoDetail">;
 // de campo desde el móvil: fecha capturada por el servidor, insumos como chips, sin edición
 // posterior (es una traza de auditoría, no un dato de ficha).
 export function ComederoDetailScreen({ route, navigation }: Props) {
+	const { isAdmin } = useAuth();
 	const { id } = route.params;
 	const { data, loading, error } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
@@ -102,9 +104,11 @@ export function ComederoDetailScreen({ route, navigation }: Props) {
 				<TouchableOpacity onPress={() => navigation.goBack()}>
 					<Text style={styles.back}>‹ Comederos</Text>
 				</TouchableOpacity>
-				<TouchableOpacity onPress={() => navigation.navigate("ComederoForm", { id: comedero.id })}>
-					<Text style={styles.edit}>Editar</Text>
-				</TouchableOpacity>
+				{isAdmin && (
+					<TouchableOpacity onPress={() => navigation.navigate("ComederoForm", { id: comedero.id })}>
+						<Text style={styles.edit}>Editar</Text>
+					</TouchableOpacity>
+				)}
 			</View>
 
 			{comedero.fotoUrl ? (
