@@ -1,114 +1,82 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Backend — API de Colonias Felinas
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API GraphQL construida con **NestJS** (code-first) y **Prisma ORM** sobre **PostgreSQL**,
+más un endpoint REST híbrido para la subida de imágenes. Para la visión general del proyecto
+completo (frontend web, app móvil, despliegue), consulta el
+[README de la raíz del repositorio](../README.md).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Estructura por dominio
 
-## Description
+Cada módulo de negocio sigue el mismo patrón (`*.module.ts`, `*.resolver.ts`, `*.service.ts`,
+`dto/`, `entities/`), con sus tests unitarios (`*.spec.ts`) colindantes al código fuente:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+```
+src/
+├── auth/                 JWT, guards, estrategia Passport, decorador @CurrentUser
+├── usuarios/              Cuentas de acceso (roles Administrador / Gestor)
+├── colonias/               Censo de colonias felinas
+├── comederos/              Puntos de alimentación
+├── visitas-comedero/        Auditoría de visitas/inspecciones a comederos
+├── gatos/                  Ficha individual del felino, protocolo CER
+├── registros-clinicos/      Historial médico por gato (transacción atómica con estado_cer)
+├── voluntarios/            Colaboradores, cesión de datos RGPD obligatoria
+├── asignaciones/           Relación N:M voluntario ↔ colonia
+├── uploads/                 Endpoint REST de subida de imágenes (sharp: resize, WebP, EXIF)
+├── prisma/                  Cliente de Prisma + traducción de errores a excepciones HTTP
+├── graphql/                 Formateo de errores GraphQL (extensions.code)
+├── configure-app.ts         Configuración compartida entre main.ts y los tests e2e
+└── main.ts                  Punto de entrada
 ```
 
-## Compile and run the project
+El esquema de base de datos vive en `prisma/schema.prisma`; las migraciones en
+`prisma/migrations/`; los datos de demostración en `prisma/seed.ts`.
+
+## Variables de entorno
+
+Tres ficheros `.env` distintos, ninguno versionado (ver `.gitignore`):
+
+| Fichero | Se usa para |
+|---|---|
+| `.env` | Desarrollo local (`npm run start:dev`), conecta a Postgres en `localhost` |
+| `.env.docker` | Contenedor Docker, conecta a Postgres por el nombre de servicio `db` |
+| `.env.test` | Suite e2e, apunta a una base de datos `colonias_test` separada |
+
+Claves esperadas: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `APP_URL`,
+`MIN_FREE_DISK_MB` (umbral de espacio en disco por debajo del cual `/uploads` responde 507).
+
+## Comandos habituales
 
 ```bash
-# development
-$ npm run start
+npm run start:dev        # servidor con recarga en caliente
+npm run lint              # oxlint
 
-# watch mode
-$ npm run start:dev
+npm test                  # unitarios (Vitest)
+npm run test:e2e          # e2e contra PostgreSQL real — requiere el contenedor db levantado
 
-# production mode
-$ npm run start:prod
+npx prisma migrate dev    # crear/aplicar una migración en desarrollo
+npm run db:seed           # sembrar datos de demo (idempotente)
+npm run db:reset          # borrar y reconstruir la base de datos desde cero + seed
+
+npm run docker:up         # levantar todo el ecosistema en Docker
+npm run docker:logs       # seguir los logs del contenedor backend
 ```
 
-## Run tests
+## GraphQL
+
+Con el servidor arrancado, el endpoint vive en `http://localhost:3000/graphql` (Apollo
+Sandbox disponible en desarrollo). El esquema se genera automáticamente en `src/schema.gql`
+a partir de los decoradores — no se edita a mano.
+
+## Tests e2e
+
+Corren contra una base de datos PostgreSQL real (no mockeada), en `colonias_test`. Antes de
+la primera vez:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run db:test:migrate
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Cada fichero de `test/*.e2e-spec.ts` limpia la base de datos en `beforeAll`/`afterAll` y hace
+peticiones HTTP reales contra `/graphql`, verificando también las restricciones de integridad
+(`ON DELETE CASCADE`/`RESTRICT`, claves compuestas, conflictos `P2002`) directamente contra
+Postgres.
