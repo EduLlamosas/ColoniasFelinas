@@ -18,12 +18,23 @@ import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { formatGraphqlError } from './graphql/format-error.util.js';
+import { createQueryComplexityPlugin } from './graphql/query-complexity.plugin.js';
 
 // La query real más anidada del proyecto (registrosClinicos { usuario { ... } }) usa 3 niveles.
 // El margen hasta 8 cubre cualquier consulta legítima futura sin dejar via libre a un cliente
 // autenticado (basta ser GESTOR) que intente amplificar el coste de una petición con alias
 // repetidos anidados sin límite (DoS por sobrecoste de GraphQL).
 const MAX_QUERY_DEPTH = 8;
+
+// depthLimit por sí solo no frena la amplificación por ANCHURA: una query con cientos de alias
+// del mismo campo en paralelo (p. ej. "a1: colonias{...} a2: colonias{...} ...") no es profunda,
+// así que pasaría el límite de arriba sin problema pese a disparar cientos de findMany() en una
+// sola petición HTTP. La query real más cara del proyecto (gatos, con sus 14 campos) tiene
+// complejidad ~15 con este estimador (1 por campo, sin distinguir listas de escalares); dejar el
+// límite en 150 da margen de sobra a cualquier query legítima y aun así corta la amplificación
+// mucho antes de las cientos de llamadas que haría falta para un DoS real. Ver
+// query-complexity.plugin.ts para por qué esto es un plugin de Apollo y no una validationRule más.
+const MAX_QUERY_COMPLEXITY = 150;
 
 @Module({
   imports: [
@@ -38,6 +49,7 @@ const MAX_QUERY_DEPTH = 8;
       context: ({ req }: { req: unknown }) => ({ req }),
       formatError: formatGraphqlError,
       validationRules: [depthLimit(MAX_QUERY_DEPTH)],
+      plugins: [createQueryComplexityPlugin(MAX_QUERY_COMPLEXITY)],
     }),
     PrismaModule,
     ColoniasModule,
