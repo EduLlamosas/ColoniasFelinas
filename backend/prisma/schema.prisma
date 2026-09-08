@@ -45,6 +45,11 @@ model Usuario {
   passwordHash   String     @map("password_hash")
   nombreCompleto String     @map("nombre_completo")
   rol            RolUsuario @default(GESTOR)
+  // Incluido en el payload del JWT al firmarlo y comprobado en JwtStrategy en cada petición: un
+  // UPDATE que lo incremente ("token_version = token_version + 1") invalida de golpe todos los
+  // tokens ya emitidos para este usuario (dispositivo perdido, token compartido por error...),
+  // sin esperar a que expiren solos ni necesitar una lista de revocación aparte.
+  tokenVersion   Int        @default(0) @map("token_version")
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 

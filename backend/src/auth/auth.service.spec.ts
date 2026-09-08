@@ -33,8 +33,13 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('crea el usuario y devuelve un accessToken firmado con su id, email y rol', async () => {
-      usuariosService.create.mockResolvedValue({ id: '1', email: 'a@b.com', rol: 'GESTOR' });
+    it('crea el usuario y devuelve un accessToken firmado con su id, email, rol y tokenVersion', async () => {
+      usuariosService.create.mockResolvedValue({
+        id: '1',
+        email: 'a@b.com',
+        rol: 'GESTOR',
+        tokenVersion: 0,
+      });
       jwtService.sign.mockReturnValue('token-firmado');
 
       const result = await service.register({
@@ -48,10 +53,15 @@ describe('AuthService', () => {
         password: 'secreto123',
         nombreCompleto: 'Ana',
       });
-      expect(jwtService.sign).toHaveBeenCalledWith({ sub: '1', email: 'a@b.com', rol: 'GESTOR' });
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: '1',
+        email: 'a@b.com',
+        rol: 'GESTOR',
+        tokenVersion: 0,
+      });
       expect(result).toEqual({
         accessToken: 'token-firmado',
-        usuario: { id: '1', email: 'a@b.com', rol: 'GESTOR' },
+        usuario: { id: '1', email: 'a@b.com', rol: 'GESTOR', tokenVersion: 0 },
       });
     });
   });
@@ -80,6 +90,7 @@ describe('AuthService', () => {
         email: 'a@b.com',
         rol: 'ADMINISTRADOR',
         passwordHash: 'hash',
+        tokenVersion: 3,
       });
       vi.mocked(bcrypt.compare).mockResolvedValue(true as never);
       jwtService.sign.mockReturnValue('token-firmado');
@@ -91,6 +102,7 @@ describe('AuthService', () => {
         sub: '1',
         email: 'a@b.com',
         rol: 'ADMINISTRADOR',
+        tokenVersion: 3,
       });
       expect(result.accessToken).toBe('token-firmado');
     });

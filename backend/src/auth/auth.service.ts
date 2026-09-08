@@ -32,11 +32,17 @@ export class AuthService {
     return this.buildAuthPayload(usuario);
   }
 
-  private buildAuthPayload(usuario: { id: number; email: string; rol: RolUsuario }) {
+  private buildAuthPayload(usuario: {
+    id: number;
+    email: string;
+    rol: RolUsuario;
+    tokenVersion: number;
+  }) {
     const accessToken = this.jwtService.sign({
       sub: usuario.id,
       email: usuario.email,
       rol: usuario.rol,
+      tokenVersion: usuario.tokenVersion,
     });
     return { accessToken, usuario };
   }
