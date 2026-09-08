@@ -10,5 +10,11 @@
     "dev:backend": "npm run start:dev --workspace=backend",
     "dev:web": "npm run dev --workspace=frontend-colonias",
     "dev:mobile": "npm run start --workspace=frontend-mobile"
+  },
+  "overrides": {
+    "@nestjs/throttler": {
+      "@nestjs/common": "$@nestjs/common",
+      "@nestjs/core": "$@nestjs/core"
+    }
   }
 }
