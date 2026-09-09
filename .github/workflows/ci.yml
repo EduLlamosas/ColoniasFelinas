@@ -49,6 +49,9 @@ jobs:
       - name: Comprobar tipos
         working-directory: backend
         run: npx tsc --noEmit -p tsconfig.json
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
       - name: Tests unitarios
         working-directory: backend
         run: npm test
@@ -68,6 +71,9 @@ jobs:
           node-version: "24.x"
           cache: "npm"
       - run: npm ci
+      - name: Lint
+        working-directory: frontend-colonias
+        run: npm run lint
       - name: Tests
         working-directory: frontend-colonias
         run: npx vitest run

@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 // Trackea por usuario autenticado (req.user.sub, ya rellenado por JwtAuthGuard antes de que este
