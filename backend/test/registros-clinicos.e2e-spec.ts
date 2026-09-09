@@ -118,6 +118,72 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
     expect(registros).toHaveLength(0);
   });
 
+  it('dos intervenciones concurrentes sobre el mismo gato no se pisan ni corrompen el estado_cer', async () => {
+    // Gato propio, no el `gatoId` compartido del resto del fichero: así esta prueba no
+    // interfiere con el conteo de "registrosClinicos devuelve el historial del gato" de arriba.
+    const coloniaConcurrencia = await prisma.colonia.create({
+      data: {
+        codigoOficial: 'E2E-CLINICO-CONCURRENCIA',
+        nombre: 'Colonia para concurrencia',
+        tipoSuelo: 'URBANO',
+        latitud: 1,
+        longitud: 1,
+      },
+    });
+    const gatoConcurrencia = await prisma.gato.create({
+      data: {
+        coloniaId: coloniaConcurrencia.id,
+        sexo: 'HEMBRA',
+        capaPelaje: 'Blanco',
+        estadoCer: 'CAPTURADO',
+      },
+    });
+
+    // Dos peticiones DE VERDAD en paralelo (no una tras otra) contra el mismo gatoId, cada una
+    // con un nuevoEstadoCer distinto para poder distinguir cuál "ganó" la carrera. La teoría es
+    // que Postgres serializa el UPDATE de la fila del gato (la segunda transacción espera a que
+    // la primera confirme o revierta) - esto lo comprueba en vez de darlo por supuesto.
+    const [resA, resB] = await Promise.all([
+      graphql(REGISTRAR_INTERVENCION, {
+        data: {
+          gatoId: gatoConcurrencia.id,
+          tipo: 'ESTERILIZACION',
+          fecha: '2026-01-15',
+          diagnostico: 'Intervención concurrente A',
+          nuevoEstadoCer: 'ESTERILIZADO',
+        },
+      }).set('Authorization', `Bearer ${token}`),
+      graphql(REGISTRAR_INTERVENCION, {
+        data: {
+          gatoId: gatoConcurrencia.id,
+          tipo: 'TEST_ENFERMEDAD',
+          fecha: '2026-01-15',
+          diagnostico: 'Intervención concurrente B',
+          nuevoEstadoCer: 'ADOPTADO',
+        },
+      }).set('Authorization', `Bearer ${token}`),
+    ]);
+
+    // Ninguna de las dos se pierde ni falla por un deadlock del $transaction interactivo.
+    expect(resA.body.errors).toBeUndefined();
+    expect(resB.body.errors).toBeUndefined();
+
+    // Los dos registros clínicos existen: ninguna escritura se pisó a la otra.
+    const registros = await prisma.registroClinico.findMany({
+      where: { gatoId: gatoConcurrencia.id },
+    });
+    expect(registros).toHaveLength(2);
+    expect(registros.map((r) => r.diagnostico).sort()).toEqual([
+      'Intervención concurrente A',
+      'Intervención concurrente B',
+    ]);
+
+    // El estado final es el de UNA de las dos transacciones (la que Postgres dejó ir en
+    // segundo lugar) - nunca un tercer valor corrupto, nunca el estado previo a ambas.
+    const gatoFinal = await prisma.gato.findUnique({ where: { id: gatoConcurrencia.id } });
+    expect(['ESTERILIZADO', 'ADOPTADO']).toContain(gatoFinal?.estadoCer);
+  });
+
   it('ON DELETE CASCADE: borrar el gato borra también su historial clínico', async () => {
     await prisma.gato.delete({ where: { id: gatoId } });
     expect(await prisma.registroClinico.findMany({ where: { gatoId } })).toHaveLength(0);
