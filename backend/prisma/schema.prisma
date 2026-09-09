@@ -110,7 +110,10 @@ model VisitaComedero {
   comedero Comedero @relation(fields: [comederoId], references: [id], onDelete: Cascade)
   usuario  Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
 
-  @@index([comederoId])
+  // Compuesto, no dos índices simples: findByComedero() filtra por comederoId Y ordena por
+  // createdAt desc - con [comederoId, createdAt] Postgres puede devolver las filas ya en ese
+  // orden directamente desde el índice, sin un paso de Sort aparte una vez filtradas.
+  @@index([comederoId, createdAt])
   @@map("visitas_comedero")
 }
 
@@ -151,7 +154,9 @@ model RegistroClinico {
   gato    Gato     @relation(fields: [gatoId], references: [id], onDelete: Cascade)
   usuario Usuario? @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
 
-  @@index([gatoId])
+  // Compuesto, mismo motivo que en VisitaComedero: findByGato() filtra por gatoId Y ordena por
+  // fecha desc.
+  @@index([gatoId, fecha])
   @@map("registros_clinicos")
 }
 
