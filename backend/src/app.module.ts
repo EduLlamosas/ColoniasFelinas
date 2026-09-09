@@ -45,6 +45,15 @@ const MAX_QUERY_COMPLEXITY = 150;
 const AUTH_RATE_LIMIT_TTL_MS = 60_000;
 const AUTH_RATE_LIMIT_MAX_ATTEMPTS = 5;
 
+// MIN_FREE_DISK_MB (uploads.controller.ts) protege frente a una foto individual grande, pero no
+// limita CUÁNTAS puede subir un mismo actor en total - un uso indebido y sostenido agotaría el
+// disco igual, solo que más despacio. 30 subidas/hora por usuario autenticado (ver
+// UploadsThrottlerGuard, que trackea por sub del JWT en vez de por IP) es de sobra para el
+// trabajo de campo real y aun así acota el abuso sostenido: a 8MB máx. por foto, son ~240MB/hora
+// como mucho por cuenta, no todo el disco en una tarde.
+const UPLOADS_RATE_LIMIT_TTL_MS = 3_600_000;
+const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -53,6 +62,7 @@ const AUTH_RATE_LIMIT_MAX_ATTEMPTS = 5;
     }),
     ThrottlerModule.forRoot([
       { name: 'default', ttl: AUTH_RATE_LIMIT_TTL_MS, limit: AUTH_RATE_LIMIT_MAX_ATTEMPTS },
+      { name: 'uploads', ttl: UPLOADS_RATE_LIMIT_TTL_MS, limit: UPLOADS_RATE_LIMIT_MAX_ATTEMPTS },
     ]),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

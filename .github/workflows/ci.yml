@@ -8,6 +8,34 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: colonias_test
+        ports:
+          - 5432:5432
+        # GitHub Actions no arranca los steps del job hasta que este healthcheck pase - sin
+        # esto, "Migrar base de datos de test" podría intentar conectar antes de que Postgres
+        # esté realmente aceptando conexiones todavía.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    # backend/.env.test está en el .gitignore de backend (a propósito: no hay nada secreto
+    # real aquí, son credenciales de prueba, pero no tiene sentido versionar un .env). Un
+    # checkout de CI no lo tiene, así que estas mismas variables se pasan como env del job -
+    # dotenv (via prisma.config.ts) nunca sobrescribe una variable ya presente en process.env,
+    # así que da igual que el fichero no exista.
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/colonias_test?schema=public
+      JWT_SECRET: test-secret-solo-para-tests-de-integracion
+      JWT_EXPIRES_IN: "86400"
+      APP_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -24,6 +52,12 @@ jobs:
       - name: Tests unitarios
         working-directory: backend
         run: npm test
+      - name: Migrar base de datos de test
+        working-directory: backend
+        run: npm run db:test:migrate
+      - name: Tests e2e
+        working-directory: backend
+        run: npm run test:e2e
 
   frontend-web:
     runs-on: ubuntu-latest

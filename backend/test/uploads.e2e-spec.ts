@@ -86,4 +86,36 @@ describe('Uploads (integración real, e2e)', () => {
     // carga del listado de gatos/comederos/colonias.
     expect(descarga.headers['cache-control']).toBe('public, max-age=31536000, immutable');
   });
+
+  it(
+    'bloquea la subida nº31 en la misma hora del mismo usuario (límite: 30/hora, protege frente a un abuso sostenido en el tiempo)',
+    async () => {
+      // Usuario propio, no el `token` del resto del fichero: así el cupo de este test empieza
+      // vacío de verdad, sin depender de cuántas subidas hayan hecho ya los tests anteriores.
+      const { token: tokenPropio } = await registerUserOrThrow(app, {
+        email: 'uploads-rate-limit@test.local',
+      });
+      const imagenPequena = await sharp({
+        create: { width: 4, height: 4, channels: 3, background: { r: 1, g: 2, b: 3 } },
+      })
+        .png()
+        .toBuffer();
+
+      for (let intento = 1; intento <= 30; intento++) {
+        const res = await request(app.getHttpServer())
+          .post('/uploads')
+          .set('Authorization', `Bearer ${tokenPropio}`)
+          .attach('file', imagenPequena, { filename: `foto-${intento}.png`, contentType: 'image/png' })
+          .expect(201);
+        archivosCreados.push(res.body.url.split('/uploads/')[1]);
+      }
+
+      await request(app.getHttpServer())
+        .post('/uploads')
+        .set('Authorization', `Bearer ${tokenPropio}`)
+        .attach('file', imagenPequena, { filename: 'foto-31.png', contentType: 'image/png' })
+        .expect(429);
+    },
+    30_000,
+  );
 });

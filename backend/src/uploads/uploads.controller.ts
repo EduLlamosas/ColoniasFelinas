@@ -13,12 +13,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { memoryStorage } from 'multer';
 import sharp from 'sharp';
 import { RolUsuario } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import { UploadsThrottlerGuard } from './guards/uploads-throttler.guard.js';
 import { getFreeDiskBytes, UPLOADS_DIR } from './uploaded-file.util.js';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -31,7 +33,11 @@ const DEFAULT_MIN_FREE_DISK_MB = 2048;
 const INSUFFICIENT_STORAGE = 507;
 const SERVICE_UNAVAILABLE = 503;
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+// SkipThrottle({ default: true }): sin esto, el tier "default" (5/minuto, pensado para
+// login/register) también se aplicaría aquí y bloquearía una sesión normal de subida de varias
+// fotos seguidas - esta ruta solo debe medirse contra el tier "uploads" (ver app.module.ts).
+@UseGuards(JwtAuthGuard, RolesGuard, UploadsThrottlerGuard)
+@SkipThrottle({ default: true })
 @Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
 @Controller('uploads')
 export class UploadsController {
