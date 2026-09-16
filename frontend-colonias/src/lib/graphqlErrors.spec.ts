@@ -28,6 +28,13 @@ describe("getErrorMessage", () => {
 		expect(getErrorMessage(error)).toBe("No tienes permisos para realizar esta acción.");
 	});
 
+	// INVALID_CREDENTIALS es distinto de UNAUTHENTICATED a propósito: un login con credenciales
+	// incorrectas no debe mostrar "tu sesión ha caducado" (nunca hubo sesión que caducar).
+	it("sobrescribe INVALID_CREDENTIALS con un mensaje en español distinto de UNAUTHENTICATED", () => {
+		const error = combinedError({ code: "INVALID_CREDENTIALS" });
+		expect(getErrorMessage(error)).toBe("Correo electrónico o contraseña incorrectos.");
+	});
+
 	it("usa el detalle de class-validator (string) cuando está presente", () => {
 		const error = combinedError({
 			code: "BAD_REQUEST",

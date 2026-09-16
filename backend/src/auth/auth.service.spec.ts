@@ -3,7 +3,7 @@ vi.mock('bcrypt', () => ({
   compare: vi.fn(),
 }));
 
-import { UnauthorizedException } from '@nestjs/common';
+import { GraphQLError } from 'graphql';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service.js';
 import type { UsuariosService } from '../usuarios/usuarios.service.js';
@@ -67,21 +67,30 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    it('lanza UnauthorizedException si el email no existe', async () => {
+    // extensions.code: 'INVALID_CREDENTIALS', deliberadamente distinto del 'UNAUTHENTICATED'
+    // genérico que usan los guards de JWT - si compartieran code, el frontend mostraría "tu
+    // sesión ha caducado" al fallar un login, aunque nunca hubo sesión que caducar.
+    it('lanza un GraphQLError con code INVALID_CREDENTIALS si el email no existe', async () => {
       usuariosService.findByEmail.mockResolvedValue(null);
       await expect(
         service.login({ email: 'nadie@x.com', password: 'x' }),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        constructor: GraphQLError,
+        extensions: { code: 'INVALID_CREDENTIALS', http: { status: 401 } },
+      });
       expect(bcrypt.compare).not.toHaveBeenCalled();
     });
 
-    it('lanza UnauthorizedException si la contraseña no coincide', async () => {
+    it('lanza un GraphQLError con code INVALID_CREDENTIALS si la contraseña no coincide', async () => {
       usuariosService.findByEmail.mockResolvedValue({ id: '1', passwordHash: 'hash' });
       vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
 
       await expect(
         service.login({ email: 'a@b.com', password: 'mala' }),
-      ).rejects.toThrow(UnauthorizedException);
+      ).rejects.toMatchObject({
+        constructor: GraphQLError,
+        extensions: { code: 'INVALID_CREDENTIALS', http: { status: 401 } },
+      });
     });
 
     it('devuelve accessToken y usuario cuando las credenciales son correctas', async () => {

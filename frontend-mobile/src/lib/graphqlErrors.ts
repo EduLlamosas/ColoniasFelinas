@@ -5,6 +5,10 @@ import { CombinedGraphQLErrors } from "@apollo/client/errors";
 // de los guards de Nest con mensajes genéricos en inglés ("Unauthorized"), así que se sobrescriben.
 const MESSAGES_BY_CODE: Record<string, string> = {
 	UNAUTHENTICATED: "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+	// Distinto de UNAUTHENTICATED a propósito: ese code lo usan los guards de JWT cuando una
+	// sesión YA iniciada deja de ser válida. Un login con credenciales incorrectas nunca tuvo
+	// sesión que caducar, así que el backend lo marca con este code aparte (ver auth.service.ts).
+	INVALID_CREDENTIALS: "Correo electrónico o contraseña incorrectos.",
 	FORBIDDEN: "No tienes permisos para realizar esta acción.",
 };
 

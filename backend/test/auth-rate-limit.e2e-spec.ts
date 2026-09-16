@@ -42,9 +42,9 @@ describe('Rate limiting en login/register (e2e)', () => {
 
     for (let intento = 1; intento <= 5; intento++) {
       const res = await graphql(LOGIN, { data: credenciales }).expect(200);
-      // Con credenciales inexistentes cada intento es UNAUTHENTICATED, no RATE_LIMITED: el guard
-      // todavía deja pasar la petición hasta el resolver.
-      expect(res.body.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');
+      // Con credenciales inexistentes cada intento es INVALID_CREDENTIALS, no RATE_LIMITED: el
+      // guard todavía deja pasar la petición hasta el resolver.
+      expect(res.body.errors?.[0]?.extensions?.code).toBe('INVALID_CREDENTIALS');
     }
 
     const sexto = await graphql(LOGIN, { data: credenciales }).expect(200);

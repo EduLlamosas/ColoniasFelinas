@@ -58,20 +58,23 @@ describe('Auth (integración real, e2e)', () => {
     expect(res.body.data.login.accessToken).toEqual(expect.any(String));
   });
 
-  it('login con contraseña incorrecta es UNAUTHENTICATED, real (bcrypt.compare de verdad)', async () => {
+  // INVALID_CREDENTIALS, no UNAUTHENTICATED: ese code lo usan los guards de JWT cuando una
+  // sesión YA iniciada deja de ser válida. Un login fallido nunca tuvo sesión que caducar, así
+  // que lleva un code propio para que el frontend no muestre "tu sesión ha caducado" aquí.
+  it('login con contraseña incorrecta es INVALID_CREDENTIALS, real (bcrypt.compare de verdad)', async () => {
     const res = await graphql(LOGIN, {
       data: { email: 'auth-e2e-1@test.local', password: 'password-equivocada' },
     }).expect(200);
 
-    expect(res.body.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');
+    expect(res.body.errors?.[0]?.extensions?.code).toBe('INVALID_CREDENTIALS');
   });
 
-  it('login con un email que no existe también es UNAUTHENTICATED (no revela si el email existe)', async () => {
+  it('login con un email que no existe también es INVALID_CREDENTIALS (no revela si el email existe)', async () => {
     const res = await graphql(LOGIN, {
       data: { email: 'no-existe@test.local', password: 'password123' },
     }).expect(200);
 
-    expect(res.body.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');
+    expect(res.body.errors?.[0]?.extensions?.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('me sin token es UNAUTHENTICATED', async () => {
