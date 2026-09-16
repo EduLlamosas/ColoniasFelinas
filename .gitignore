@@ -5,3 +5,6 @@ notes.md
 
 # Variables de docker-compose.prod.yml (FRONT_DOMAIN, API_DOMAIN, POSTGRES_PASSWORD): solo en el servidor
 .env
+
+# Copias generadas por scripts/backup-postgres.sh: solo en el servidor, nunca en el repo
+backups/
