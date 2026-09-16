@@ -13,9 +13,21 @@ export class RegistrosClinicosService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
-    { gatoId, tipo, fecha, diagnostico, nuevoEstadoCer }: CreateRegistroClinicoInput,
+    { gatoId, tipo, fecha, diagnostico, nuevoEstadoCer, idempotencyKey }: CreateRegistroClinicoInput,
     usuarioId: number,
   ) {
+    // Reintento con la misma idempotencyKey (cola offline de la app móvil): si la petición
+    // original ya se procesó (creó el registro Y actualizó estado_cer) y solo se perdió la
+    // respuesta, se devuelve esa fila tal cual, sin volver a tocar nada. Es deliberado que esto
+    // vaya ANTES de cualquier validación o de la transacción: un reintento de algo que ya tuvo
+    // éxito no debe re-evaluar fechas (podrían fallar ahora por otro motivo distinto) ni, sobre
+    // todo, volver a pisar estado_cer del gato - si alguien cambió el estado por otra vía mientras
+    // tanto, reaplicar el valor viejo de esta intervención lo regresionaría sin motivo.
+    if (idempotencyKey) {
+      const existente = await this.prisma.registroClinico.findUnique({ where: { idempotencyKey } });
+      if (existente) return existente;
+    }
+
     // new Date(fecha): @IsDateString() acepta tanto "2026-01-15" como un ISO completo, pero
     // el DateTime de Prisma exige el ISO completo - Date normaliza cualquiera de los dos.
     const fechaIntervencion = new Date(fecha);
@@ -50,7 +62,7 @@ export class RegistrosClinicosService {
       .$transaction(async (tx) => {
         await tx.gato.update({ where: { id: gatoId }, data: { estadoCer: nuevoEstadoCer } });
         return tx.registroClinico.create({
-          data: { gatoId, usuarioId, tipo, fecha: fechaIntervencion, diagnostico },
+          data: { gatoId, usuarioId, tipo, fecha: fechaIntervencion, diagnostico, idempotencyKey },
         });
       })
       .catch(handlePrismaError);

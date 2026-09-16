@@ -6,6 +6,7 @@ function createPrismaMock() {
     visitaComedero: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
   };
 }
@@ -23,7 +24,34 @@ describe('VisitasComederoService', () => {
     const data = { comederoId: 1, piensoSeco: true, agua: true };
     prisma.visitaComedero.create.mockResolvedValue({ id: 1, ...data, usuarioId: 7 });
     await service.create(data as never, 7);
+    expect(prisma.visitaComedero.findUnique).not.toHaveBeenCalled();
     expect(prisma.visitaComedero.create).toHaveBeenCalledWith({ data: { ...data, usuarioId: 7 } });
+  });
+
+  it('create() con idempotencyKey nueva comprueba que no exista y crea la visita normalmente', async () => {
+    const data = { comederoId: 1, agua: true, idempotencyKey: 'clave-nueva' };
+    prisma.visitaComedero.findUnique.mockResolvedValue(null);
+    prisma.visitaComedero.create.mockResolvedValue({ id: 1, ...data, usuarioId: 7 });
+
+    await service.create(data as never, 7);
+
+    expect(prisma.visitaComedero.findUnique).toHaveBeenCalledWith({
+      where: { idempotencyKey: 'clave-nueva' },
+    });
+    expect(prisma.visitaComedero.create).toHaveBeenCalledWith({ data: { ...data, usuarioId: 7 } });
+  });
+
+  it('create() con una idempotencyKey ya usada devuelve la visita existente sin crear una nueva', async () => {
+    const existente = { id: 1, comederoId: 1, agua: true, idempotencyKey: 'clave-repetida', usuarioId: 7 };
+    prisma.visitaComedero.findUnique.mockResolvedValue(existente);
+
+    const resultado = await service.create(
+      { comederoId: 1, agua: true, idempotencyKey: 'clave-repetida' } as never,
+      7,
+    );
+
+    expect(resultado).toEqual(existente);
+    expect(prisma.visitaComedero.create).not.toHaveBeenCalled();
   });
 
   it('findByComedero() filtra por comederoId y ordena por fecha descendente', async () => {

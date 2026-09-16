@@ -9,6 +9,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import * as Crypto from "expo-crypto";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { GATOS_QUERY } from "../features/gatos/gatos.graphql";
 import {
@@ -80,7 +81,16 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 		try {
 			await registrarIntervencion({
 				variables: {
-					data: { gatoId: Number(id), tipo, fecha: fecha.trim(), diagnostico: diagnostico.trim(), nuevoEstadoCer },
+					data: {
+						gatoId: Number(id),
+						tipo,
+						fecha: fecha.trim(),
+						diagnostico: diagnostico.trim(),
+						nuevoEstadoCer,
+						// Generada aquí, una sola vez por pulsación de "Guardar": mismo mecanismo que en
+						// ComederoDetailScreen, ver el comentario allí.
+						idempotencyKey: Crypto.randomUUID(),
+					},
 				},
 			});
 			setFormOpen(false);

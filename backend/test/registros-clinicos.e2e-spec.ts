@@ -184,6 +184,59 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
     expect(['ESTERILIZADO', 'ADOPTADO']).toContain(gatoFinal?.estadoCer);
   });
 
+  it('dos registros con la misma idempotencyKey crean un solo registro clínico y no vuelven a tocar estado_cer', async () => {
+    const coloniaIdempotencia = await prisma.colonia.create({
+      data: {
+        codigoOficial: 'E2E-CLINICO-IDEMPOTENCIA',
+        nombre: 'Colonia para idempotencia',
+        tipoSuelo: 'URBANO',
+        latitud: 1,
+        longitud: 1,
+      },
+    });
+    const gatoIdempotencia = await prisma.gato.create({
+      data: {
+        coloniaId: coloniaIdempotencia.id,
+        sexo: 'MACHO',
+        capaPelaje: 'Negro',
+        estadoCer: 'CAPTURADO',
+      },
+    });
+
+    const variables = {
+      data: {
+        gatoId: gatoIdempotencia.id,
+        tipo: 'ESTERILIZACION',
+        fecha: '2026-01-15',
+        diagnostico: 'Intervención idempotente',
+        nuevoEstadoCer: 'ESTERILIZADO',
+        idempotencyKey: 'e2e-idempotencia-registro-1',
+      },
+    };
+
+    const primera = await graphql(REGISTRAR_INTERVENCION, variables)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(primera.body.errors).toBeUndefined();
+
+    // Entre el envío original y el reintento, otra intervención real (desde otro dispositivo,
+    // por ejemplo) cambia el estado del gato - el reintento de la primera NO debe pisarlo.
+    await prisma.gato.update({ where: { id: gatoIdempotencia.id }, data: { estadoCer: 'ADOPTADO' } });
+
+    // Simula el reintento automático de la cola offline del móvil: misma clave, misma petición.
+    const segunda = await graphql(REGISTRAR_INTERVENCION, variables)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(segunda.body.errors).toBeUndefined();
+    expect(segunda.body.data.registrarIntervencionMedica.id).toBe(primera.body.data.registrarIntervencionMedica.id);
+
+    const registros = await prisma.registroClinico.findMany({ where: { gatoId: gatoIdempotencia.id } });
+    expect(registros).toHaveLength(1);
+
+    const gatoFinal = await prisma.gato.findUnique({ where: { id: gatoIdempotencia.id } });
+    expect(gatoFinal?.estadoCer).toBe('ADOPTADO');
+  });
+
   it('ON DELETE CASCADE: borrar el gato borra también su historial clínico', async () => {
     await prisma.gato.delete({ where: { id: gatoId } });
     expect(await prisma.registroClinico.findMany({ where: { gatoId } })).toHaveLength(0);

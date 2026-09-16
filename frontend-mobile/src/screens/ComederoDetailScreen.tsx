@@ -9,6 +9,7 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
+import * as Crypto from "expo-crypto";
 import { useMutation, useQuery } from "@apollo/client/react";
 import { COMEDEROS_QUERY } from "../features/comederos/comederos.graphql";
 import {
@@ -61,6 +62,11 @@ export function ComederoDetailScreen({ route, navigation }: Props) {
 						comidaHumeda,
 						agua,
 						observaciones: observaciones.trim() || undefined,
+						// Generada aquí, una sola vez por pulsación de "Confirmar registro": si esta
+						// petición falla por red, errorLink la guarda en la cola offline con esta misma
+						// clave (ver offlineQueue.ts), y el reintento automático la reutiliza tal cual -
+						// así el backend puede reconocer "esto ya se guardó" en vez de duplicarlo.
+						idempotencyKey: Crypto.randomUUID(),
 					},
 				},
 			});

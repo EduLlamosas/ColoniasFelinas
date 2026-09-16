@@ -10,7 +10,7 @@ function createPrismaMock() {
   return {
     $transaction: vi.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
     gato: { findUnique: vi.fn() },
-    registroClinico: { findMany: vi.fn() },
+    registroClinico: { findMany: vi.fn(), findUnique: vi.fn() },
     tx,
   };
 }
@@ -22,6 +22,7 @@ describe('RegistrosClinicosService', () => {
   beforeEach(() => {
     prisma = createPrismaMock();
     prisma.gato.findUnique.mockResolvedValue({ fechaNacimiento: null });
+    prisma.registroClinico.findUnique.mockResolvedValue(null);
     service = new RegistrosClinicosService(prisma as unknown as PrismaService);
   });
 
@@ -105,6 +106,58 @@ describe('RegistrosClinicosService', () => {
     };
 
     await expect(service.create(data as never, 7)).rejects.toThrow(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('create() con idempotencyKey nueva comprueba que no exista y sigue el flujo normal, guardando la clave', async () => {
+    const data = {
+      gatoId: 1,
+      tipo: 'VACUNACION',
+      fecha: '2026-01-01',
+      diagnostico: 'x',
+      nuevoEstadoCer: 'CAPTURADO',
+      idempotencyKey: 'clave-nueva',
+    };
+    prisma.tx.registroClinico.create.mockResolvedValue({ id: 1, ...data });
+
+    await service.create(data as never, 7);
+
+    expect(prisma.registroClinico.findUnique).toHaveBeenCalledWith({
+      where: { idempotencyKey: 'clave-nueva' },
+    });
+    expect(prisma.tx.gato.update).toHaveBeenCalledTimes(1);
+    expect(prisma.tx.registroClinico.create).toHaveBeenCalledWith({
+      data: {
+        gatoId: 1,
+        usuarioId: 7,
+        tipo: 'VACUNACION',
+        fecha: new Date('2026-01-01'),
+        diagnostico: 'x',
+        idempotencyKey: 'clave-nueva',
+      },
+    });
+  });
+
+  it('create() con una idempotencyKey ya usada devuelve el registro existente sin repetir la transacción (no vuelve a tocar estado_cer)', async () => {
+    const existente = { id: 1, gatoId: 1, idempotencyKey: 'clave-repetida' };
+    prisma.registroClinico.findUnique.mockResolvedValue(existente);
+
+    const resultado = await service.create(
+      {
+        gatoId: 1,
+        tipo: 'VACUNACION',
+        fecha: '2026-01-01',
+        diagnostico: 'x',
+        nuevoEstadoCer: 'CAPTURADO',
+        idempotencyKey: 'clave-repetida',
+      } as never,
+      7,
+    );
+
+    expect(resultado).toEqual(existente);
+    // Ni la validación de fecha ni la transacción (y, sobre todo, el update de estado_cer) se
+    // ejecutan de nuevo - es justo lo que evita que un reintento regresione el estado del gato.
+    expect(prisma.gato.findUnique).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 

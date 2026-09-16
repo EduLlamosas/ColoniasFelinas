@@ -107,6 +107,42 @@ describe('VisitasComedero (integración real, e2e)', () => {
     expect(res.body.data.comedero.ultimaVisita).not.toBeNull();
   });
 
+  it('dos registros con la misma idempotencyKey crean una sola visita (reintento de la cola offline del móvil)', async () => {
+    // Comedero propio, no el `comederoId` compartido del resto del fichero: así no interfiere
+    // con el conteo de "visitasComedero devuelve la traza registrada" de arriba.
+    const coloniaIdempotencia = await prisma.colonia.create({
+      data: {
+        codigoOficial: 'E2E-VISITA-IDEMPOTENCIA',
+        nombre: 'Colonia para idempotencia',
+        tipoSuelo: 'RURAL',
+        latitud: 1,
+        longitud: 1,
+      },
+    });
+    const comederoIdempotencia = await prisma.comedero.create({
+      data: { coloniaId: coloniaIdempotencia.id, ubicacionDetallada: 'Comedero idempotencia' },
+    });
+
+    const variables = {
+      data: {
+        comederoId: comederoIdempotencia.id,
+        agua: true,
+        idempotencyKey: 'e2e-idempotencia-visita-1',
+      },
+    };
+
+    const primera = await graphql(REGISTRAR_VISITA, variables).set('Authorization', `Bearer ${token}`).expect(200);
+    expect(primera.body.errors).toBeUndefined();
+
+    // Simula el reintento automático de la cola offline: MISMA clave, misma petición.
+    const segunda = await graphql(REGISTRAR_VISITA, variables).set('Authorization', `Bearer ${token}`).expect(200);
+    expect(segunda.body.errors).toBeUndefined();
+    expect(segunda.body.data.registrarVisitaComedero.id).toBe(primera.body.data.registrarVisitaComedero.id);
+
+    const visitas = await prisma.visitaComedero.findMany({ where: { comederoId: comederoIdempotencia.id } });
+    expect(visitas).toHaveLength(1);
+  });
+
   it('ON DELETE CASCADE: borrar el comedero borra también sus visitas', async () => {
     await prisma.comedero.delete({ where: { id: comederoId } });
     expect(await prisma.visitaComedero.findMany({ where: { comederoId } })).toHaveLength(0);

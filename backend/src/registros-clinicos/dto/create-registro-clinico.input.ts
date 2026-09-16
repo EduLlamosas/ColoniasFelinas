@@ -1,5 +1,5 @@
 import { Field, InputType, Int } from '@nestjs/graphql';
-import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { EstadoCer, TipoEventoClinico } from '@prisma/client';
 
 @InputType()
@@ -24,4 +24,10 @@ export class CreateRegistroClinicoInput {
   @Field(() => EstadoCer)
   @IsEnum(EstadoCer)
   nuevoEstadoCer: EstadoCer;
+
+  // Opcional: solo lo manda la app móvil, ver el mismo campo en CreateVisitaComederoInput.
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }

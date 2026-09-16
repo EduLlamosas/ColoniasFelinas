@@ -105,6 +105,13 @@ model VisitaComedero {
   comidaHumeda  Boolean  @default(false) @map("comida_humeda")
   agua          Boolean  @default(false)
   observaciones String?
+  // UUID generado por el cliente al pulsar "Confirmar registro" - la app móvil reintenta esta
+  // mutación sola cuando recupera conexión (cola offline), y si la petición original SÍ llegó a
+  // procesarse pero la respuesta se perdió por el camino, el reintento manda la MISMA clave: el
+  // servicio la detecta y devuelve la fila ya existente en vez de duplicarla. Nullable porque las
+  // filas ya existentes (creadas antes de este campo) no tienen ninguna que asignarles; NULL no
+  // choca contra la unicidad porque Postgres no compara NULLs entre sí como iguales.
+  idempotencyKey String? @unique @map("idempotency_key")
   createdAt     DateTime @default(now()) @map("created_at")
 
   comedero Comedero @relation(fields: [comederoId], references: [id], onDelete: Cascade)
@@ -149,6 +156,10 @@ model RegistroClinico {
   tipo        TipoEventoClinico
   fecha       DateTime
   diagnostico String
+  // Mismo mecanismo y mismo motivo que VisitaComedero.idempotencyKey: la app móvil reintenta
+  // esta mutación sola desde la cola offline, y esta clave evita que un reintento tras una
+  // respuesta perdida (pero ya procesada) duplique el registro clínico.
+  idempotencyKey String?        @unique @map("idempotency_key")
   createdAt   DateTime          @default(now()) @map("created_at")
 
   gato    Gato     @relation(fields: [gatoId], references: [id], onDelete: Cascade)
