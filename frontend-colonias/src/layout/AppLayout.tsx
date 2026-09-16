@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
 	ArrowLeftStartOnRectangleIcon,
+	ChartBarIcon,
 	EllipsisHorizontalIcon,
 	HomeModernIcon,
 	MapPinIcon,
@@ -19,11 +20,12 @@ const NAV_ITEMS = [
 	{ to: "/comederos", label: "Comederos", icon: ClipboardDocumentListIcon },
 	{ to: "/voluntarios", label: "Voluntarios", icon: UsersIcon },
 	{ to: "/asignaciones", label: "Asignaciones", icon: UserGroupIcon },
+	{ to: "/estadisticas", label: "Estadísticas", icon: ChartBarIcon },
 ];
 
-// En la barra inferior de móvil solo caben los 3 apartados más usados; Comederos y
-// Asignaciones (junto con la cuenta/cierre de sesión) viven detrás del botón "Más".
-const MORE_NAV_PATHS = ["/comederos", "/asignaciones"];
+// En la barra inferior de móvil solo caben los 3 apartados más usados; Comederos, Asignaciones
+// y Estadísticas (junto con la cuenta/cierre de sesión) viven detrás del botón "Más".
+const MORE_NAV_PATHS = ["/comederos", "/asignaciones", "/estadisticas"];
 const BOTTOM_NAV_ITEMS = NAV_ITEMS.filter((item) => !MORE_NAV_PATHS.includes(item.to));
 const MORE_NAV_ITEMS = NAV_ITEMS.filter((item) => MORE_NAV_PATHS.includes(item.to));
 

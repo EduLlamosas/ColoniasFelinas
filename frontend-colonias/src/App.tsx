@@ -12,6 +12,7 @@ import { ComederoDetailPage } from "./features/comederos/ComederoDetailPage";
 import { VoluntariosListPage } from "./features/voluntarios/VoluntariosListPage";
 import { VoluntarioDetailPage } from "./features/voluntarios/VoluntarioDetailPage";
 import { AsignacionesListPage } from "./features/asignaciones/AsignacionesListPage";
+import { EstadisticasPage } from "./features/estadisticas/EstadisticasPage";
 
 export default function App() {
 	return (
@@ -36,6 +37,7 @@ export default function App() {
 					<Route path="voluntarios" element={<VoluntariosListPage />} />
 					<Route path="voluntarios/:id" element={<VoluntarioDetailPage />} />
 					<Route path="asignaciones" element={<AsignacionesListPage />} />
+					<Route path="estadisticas" element={<EstadisticasPage />} />
 				</Route>
 				<Route path="*" element={<Navigate to="/" replace />} />
 			</Routes>

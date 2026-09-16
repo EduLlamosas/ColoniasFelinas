@@ -97,3 +97,21 @@ export interface Asignacion {
 	rolAsignado: string;
 	createdAt: string;
 }
+
+export interface GatosPorEstadoCer {
+	estadoCer: EstadoCer;
+	cantidad: number;
+}
+
+export interface ComederoSinVisitaReciente {
+	id: string;
+	coloniaId: number;
+	ubicacionDetallada: string;
+	ultimaVisita: string | null;
+}
+
+export interface Estadisticas {
+	gatosPorEstadoCer: GatosPorEstadoCer[];
+	comederosSinVisitaReciente: ComederoSinVisitaReciente[];
+	esterilizacionesTrimestreActual: number;
+}

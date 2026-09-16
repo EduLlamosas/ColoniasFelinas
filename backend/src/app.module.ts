@@ -18,6 +18,7 @@ import { RegistrosClinicosModule } from './registros-clinicos/registros-clinicos
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
+import { EstadisticasModule } from './estadisticas/estadisticas.module.js';
 import { formatGraphqlError } from './graphql/format-error.util.js';
 import { createQueryComplexityPlugin } from './graphql/query-complexity.plugin.js';
 
@@ -84,6 +85,7 @@ const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
     UsuariosModule,
     AuthModule,
     UploadsModule,
+    EstadisticasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
