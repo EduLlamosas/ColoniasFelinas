@@ -8,6 +8,8 @@ import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { PhotoUpload } from "../../components/ui/PhotoUpload";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { focusFirstInvalidField } from "../../lib/formValidation";
+import type { FieldErrors } from "../../lib/formValidation";
 import { CREATE_VOLUNTARIO_MUTATION, UPDATE_VOLUNTARIO_MUTATION } from "./voluntarios.graphql";
 import type { Voluntario } from "../../types/graphql";
 
@@ -42,6 +44,7 @@ export function VoluntarioFormModal({ open, onClose, voluntario }: VoluntarioFor
 	const isEditing = Boolean(voluntario);
 	const [form, setForm] = useState<FormState>(() => toFormState(voluntario));
 	const [error, setError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
 	const mutationOptions = { refetchQueries: ["Voluntarios"], awaitRefetchQueries: true };
 	const [createVoluntario, { loading: creating }] = useMutation(CREATE_VOLUNTARIO_MUTATION, mutationOptions);
@@ -50,25 +53,29 @@ export function VoluntarioFormModal({ open, onClose, voluntario }: VoluntarioFor
 
 	function handleClose() {
 		setError(null);
+		setFieldErrors({});
 		onClose();
+	}
+
+	function validate(): FieldErrors {
+		const errors: FieldErrors = {};
+		if (!DNI_PATTERN.test(form.dni.trim())) errors.dni = "El DNI debe tener 8 dígitos seguidos de una letra.";
+		if (!form.nombre.trim()) errors.nombre = "El nombre es obligatorio.";
+		if (!form.urlCesionDatos) {
+			errors.urlCesionDatos =
+				"La Ley 7/2023 y el RGPD exigen el documento de cesión de datos firmado antes de dar de alta al voluntario.";
+		}
+		return errors;
 	}
 
 	async function handleSubmit(event: FormEvent) {
 		event.preventDefault();
 		setError(null);
 
-		if (!DNI_PATTERN.test(form.dni.trim())) {
-			setError("El DNI debe tener 8 dígitos seguidos de una letra.");
-			return;
-		}
-		if (!form.nombre.trim()) {
-			setError("El nombre es obligatorio.");
-			return;
-		}
-		if (!form.urlCesionDatos) {
-			setError(
-				"La Ley 7/2023 y el RGPD exigen el documento de cesión de datos firmado antes de dar de alta al voluntario.",
-			);
+		const errors = validate();
+		setFieldErrors(errors);
+		if (Object.keys(errors).length > 0) {
+			focusFirstInvalidField(errors);
 			return;
 		}
 
@@ -95,7 +102,7 @@ export function VoluntarioFormModal({ open, onClose, voluntario }: VoluntarioFor
 		<Modal open={open} onClose={handleClose} title={isEditing ? "Editar voluntario" : "Nuevo voluntario"}>
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="DNI" htmlFor="dni" required hint="8 dígitos y una letra">
+					<Field label="DNI" htmlFor="dni" required hint="8 dígitos y una letra" error={fieldErrors.dni}>
 						<TextInput
 							id="dni"
 							required
@@ -113,14 +120,16 @@ export function VoluntarioFormModal({ open, onClose, voluntario }: VoluntarioFor
 					</Field>
 				</div>
 
-				<Field label="Nombre" htmlFor="nombre" required>
+				<Field label="Nombre" htmlFor="nombre" required error={fieldErrors.nombre}>
 					<TextInput id="nombre" required value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
 				</Field>
 
 				<PhotoUpload
+					id="urlCesionDatos"
 					label="Documento de cesión de datos (RGPD)"
 					value={form.urlCesionDatos}
 					onChange={(url) => setForm({ ...form, urlCesionDatos: url })}
+					error={fieldErrors.urlCesionDatos}
 				/>
 				<p className="-mt-2 text-xs text-slate-500">
 					Obligatorio: foto o escaneo de la firma de cesión de datos. Sin este documento no se pueden tratar los

@@ -5,12 +5,14 @@ import { resolveMediaUrl } from "../../lib/config";
 import { Spinner } from "./Spinner";
 
 interface PhotoUploadProps {
+	id?: string;
 	label: string;
 	value: string | null;
 	onChange: (url: string | null) => void;
+	error?: string;
 }
 
-export function PhotoUpload({ label, value, onChange }: PhotoUploadProps) {
+export function PhotoUpload({ id, label, value, onChange, error: externalError }: PhotoUploadProps) {
 	const [preview, setPreview] = useState<string | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -36,10 +38,14 @@ export function PhotoUpload({ label, value, onChange }: PhotoUploadProps) {
 	}
 
 	const displayUrl = preview ?? resolveMediaUrl(value);
+	const shownError = error ?? externalError;
+	const errorId = id ? `${id}-error` : undefined;
 
 	return (
 		<div>
-			<span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>
+			<span id={id && `${id}-label`} className="mb-1 block text-sm font-medium text-slate-700">
+				{label}
+			</span>
 			<div className="flex items-center gap-3">
 				<div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50">
 					{displayUrl ? (
@@ -58,11 +64,15 @@ export function PhotoUpload({ label, value, onChange }: PhotoUploadProps) {
 						{value || preview ? "Cambiar imagen" : "Subir imagen"}
 						<input
 							ref={inputRef}
+							id={id}
 							type="file"
 							accept="image/jpeg,image/png,image/webp"
-							className="hidden"
+							className="sr-only"
 							onChange={handleFileChange}
 							disabled={uploading}
+							aria-invalid={shownError ? true : undefined}
+							aria-describedby={shownError ? errorId : undefined}
+							aria-labelledby={id && `${id}-label`}
 						/>
 					</label>
 					{(value || preview) && (
@@ -80,7 +90,11 @@ export function PhotoUpload({ label, value, onChange }: PhotoUploadProps) {
 					)}
 				</div>
 			</div>
-			{error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+			{shownError && (
+				<p id={errorId} className="mt-1 text-xs text-red-600">
+					{shownError}
+				</p>
+			)}
 		</div>
 	);
 }

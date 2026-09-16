@@ -12,6 +12,8 @@ import { PhotoUpload } from "../../components/ui/PhotoUpload";
 import { LocationPicker } from "./LocationPicker";
 import { TIPO_SUELO_OPTIONS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { fieldErrorId, focusFirstInvalidField } from "../../lib/formValidation";
+import type { FieldErrors } from "../../lib/formValidation";
 import { COLONIAS_QUERY, CREATE_COLONIA_MUTATION, UPDATE_COLONIA_MUTATION } from "./colonias.graphql";
 import type { Colonia, TipoSuelo } from "../../types/graphql";
 
@@ -58,6 +60,7 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 	const isEditing = Boolean(colonia);
 	const [form, setForm] = useState<FormState>(() => toFormState(colonia));
 	const [error, setError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
 	const mutationOptions = { refetchQueries: [{ query: COLONIAS_QUERY }], awaitRefetchQueries: true };
 	const [createColonia, { loading: creating }] = useMutation(CREATE_COLONIA_MUTATION, mutationOptions);
@@ -67,15 +70,27 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 	function handleOpenChange() {
 		setForm(toFormState(colonia));
 		setError(null);
+		setFieldErrors({});
 		onClose();
+	}
+
+	function validate(): FieldErrors {
+		const errors: FieldErrors = {};
+		if (!form.tipoSuelo) errors.tipoSuelo = "Selecciona el tipo de suelo.";
+		if (form.latitud === null || form.longitud === null) {
+			errors.latitud = "Selecciona una ubicación en el mapa.";
+		}
+		return errors;
 	}
 
 	async function handleSubmit(event: FormEvent) {
 		event.preventDefault();
 		setError(null);
 
-		if (!form.tipoSuelo || form.latitud === null || form.longitud === null) {
-			setError("Completa el tipo de suelo y la ubicación en el mapa.");
+		const errors = validate();
+		setFieldErrors(errors);
+		if (Object.keys(errors).length > 0) {
+			focusFirstInvalidField(errors);
 			return;
 		}
 
@@ -128,7 +143,7 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 					</Field>
 				</div>
 
-				<Field label="Tipo de suelo" htmlFor="tipoSuelo" required>
+				<Field label="Tipo de suelo" htmlFor="tipoSuelo" required error={fieldErrors.tipoSuelo}>
 					<Select
 						id="tipoSuelo"
 						required
@@ -146,7 +161,7 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 					</Select>
 				</Field>
 
-				<Field label="Ubicación" htmlFor="latitud" required>
+				<Field label="Ubicación" htmlFor="latitud" required error={fieldErrors.latitud}>
 					<LocationPicker
 						latitud={form.latitud}
 						longitud={form.longitud}
@@ -158,6 +173,8 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 							type="number"
 							step="any"
 							placeholder="Latitud"
+							aria-invalid={fieldErrors.latitud ? true : undefined}
+							aria-describedby={fieldErrors.latitud ? fieldErrorId("latitud") : undefined}
 							value={form.latitud ?? ""}
 							onChange={(e) => setForm({ ...form, latitud: e.target.value === "" ? null : Number(e.target.value) })}
 						/>

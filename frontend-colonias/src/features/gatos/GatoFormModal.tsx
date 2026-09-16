@@ -12,6 +12,8 @@ import { Alert } from "../../components/ui/Alert";
 import { PhotoUpload } from "../../components/ui/PhotoUpload";
 import { SEXO_OPTIONS, ESTADO_CER_OPTIONS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { focusFirstInvalidField } from "../../lib/formValidation";
+import type { FieldErrors } from "../../lib/formValidation";
 import { CREATE_GATO_MUTATION, UPDATE_GATO_MUTATION } from "./gatos.graphql";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { EstadoCer, Gato, Sexo } from "../../types/graphql";
@@ -73,6 +75,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 	const { colonias, loading: loadingColonias } = useColoniasLookup();
 	const [form, setForm] = useState<FormState>(() => toFormState(gato, defaultColoniaId));
 	const [error, setError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
 	const mutationOptions = { refetchQueries: ["Gatos"], awaitRefetchQueries: true };
 	const [createGato, { loading: creating }] = useMutation(CREATE_GATO_MUTATION, mutationOptions);
@@ -81,15 +84,27 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 
 	function handleClose() {
 		setError(null);
+		setFieldErrors({});
 		onClose();
+	}
+
+	function validate(): FieldErrors {
+		const errors: FieldErrors = {};
+		if (!form.coloniaId) errors.coloniaId = "Selecciona una colonia.";
+		if (!form.capaPelaje.trim()) errors.capaPelaje = "Indica la capa de pelaje.";
+		if (!form.sexo) errors.sexo = "Selecciona el sexo.";
+		if (!form.estadoCer) errors.estadoCer = "Selecciona el estado del protocolo CER.";
+		return errors;
 	}
 
 	async function handleSubmit(event: FormEvent) {
 		event.preventDefault();
 		setError(null);
 
-		if (!form.coloniaId || !form.sexo || !form.estadoCer || !form.capaPelaje.trim()) {
-			setError("Completa la colonia, el sexo, el estado y la capa de pelaje.");
+		const errors = validate();
+		setFieldErrors(errors);
+		if (Object.keys(errors).length > 0) {
+			focusFirstInvalidField(errors);
 			return;
 		}
 
@@ -122,7 +137,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 	return (
 		<Modal open={open} onClose={handleClose} title={isEditing ? "Editar gato" : "Nuevo gato"} widthClassName="max-w-xl">
 			<form onSubmit={handleSubmit} className="space-y-4">
-				<Field label="Colonia" htmlFor="coloniaId" required>
+				<Field label="Colonia" htmlFor="coloniaId" required error={fieldErrors.coloniaId}>
 					<Select
 						id="coloniaId"
 						required
@@ -145,7 +160,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 					<Field label="Nombre" htmlFor="nombre" hint="Opcional si el gato no tiene nombre asignado">
 						<TextInput id="nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
 					</Field>
-					<Field label="Capa de pelaje" htmlFor="capaPelaje" required>
+					<Field label="Capa de pelaje" htmlFor="capaPelaje" required error={fieldErrors.capaPelaje}>
 						<TextInput
 							id="capaPelaje"
 							required
@@ -166,7 +181,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 				</Field>
 
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Sexo" htmlFor="sexo" required>
+					<Field label="Sexo" htmlFor="sexo" required error={fieldErrors.sexo}>
 						<Select id="sexo" required value={form.sexo} onChange={(e) => setForm({ ...form, sexo: e.target.value as Sexo })}>
 							<option value="" disabled>
 								Selecciona una opción
@@ -178,7 +193,7 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 							))}
 						</Select>
 					</Field>
-					<Field label="Estado (protocolo CER)" htmlFor="estadoCer" required>
+					<Field label="Estado (protocolo CER)" htmlFor="estadoCer" required error={fieldErrors.estadoCer}>
 						<Select
 							id="estadoCer"
 							required

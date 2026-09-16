@@ -11,6 +11,8 @@ import { Alert } from "../../components/ui/Alert";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ESTADO_CER_OPTIONS, TIPO_EVENTO_CLINICO_LABELS, TIPO_EVENTO_CLINICO_OPTIONS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { focusFirstInvalidField } from "../../lib/formValidation";
+import type { FieldErrors } from "../../lib/formValidation";
 import {
 	REGISTRAR_INTERVENCION_MEDICA_MUTATION,
 	REGISTROS_CLINICOS_QUERY,
@@ -36,6 +38,7 @@ export function HistorialClinicoSection({ gatoId, estadoCerActual }: HistorialCl
 	const [diagnostico, setDiagnostico] = useState("");
 	const [nuevoEstadoCer, setNuevoEstadoCer] = useState<EstadoCer>(estadoCerActual);
 	const [formError, setFormError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
 	const [registrarIntervencion, { loading: saving }] = useMutation(
 		REGISTRAR_INTERVENCION_MEDICA_MUTATION,
@@ -44,15 +47,26 @@ export function HistorialClinicoSection({ gatoId, estadoCerActual }: HistorialCl
 
 	function openForm() {
 		setNuevoEstadoCer(estadoCerActual);
+		setFieldErrors({});
 		setFormOpen(true);
+	}
+
+	function validate(): FieldErrors {
+		const errors: FieldErrors = {};
+		if (!tipo) errors.tipo = "Selecciona el tipo de evento.";
+		if (!fecha) errors.fecha = "Indica la fecha.";
+		if (!diagnostico.trim()) errors.diagnostico = "Indica el diagnóstico.";
+		return errors;
 	}
 
 	async function handleSubmit(event: FormEvent) {
 		event.preventDefault();
 		setFormError(null);
 
-		if (!tipo || !fecha || !diagnostico.trim()) {
-			setFormError("Completa el tipo de evento, la fecha y el diagnóstico.");
+		const errors = validate();
+		setFieldErrors(errors);
+		if (Object.keys(errors).length > 0) {
+			focusFirstInvalidField(errors);
 			return;
 		}
 
@@ -86,7 +100,7 @@ export function HistorialClinicoSection({ gatoId, estadoCerActual }: HistorialCl
 			{formOpen && (
 				<form onSubmit={handleSubmit} className="mb-4 space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-						<Field label="Tipo de evento" htmlFor="tipo" required>
+						<Field label="Tipo de evento" htmlFor="tipo" required error={fieldErrors.tipo}>
 							<Select id="tipo" required value={tipo} onChange={(e) => setTipo(e.target.value as TipoEventoClinico)}>
 								<option value="" disabled>
 									Selecciona una opción
@@ -98,11 +112,11 @@ export function HistorialClinicoSection({ gatoId, estadoCerActual }: HistorialCl
 								))}
 							</Select>
 						</Field>
-						<Field label="Fecha" htmlFor="fecha" required>
+						<Field label="Fecha" htmlFor="fecha" required error={fieldErrors.fecha}>
 							<TextInput id="fecha" type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
 						</Field>
 					</div>
-					<Field label="Diagnóstico" htmlFor="diagnostico" required>
+					<Field label="Diagnóstico" htmlFor="diagnostico" required error={fieldErrors.diagnostico}>
 						<Textarea id="diagnostico" value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} />
 					</Field>
 					<Field label="Nuevo estado (protocolo CER)" htmlFor="nuevoEstadoCer" required>

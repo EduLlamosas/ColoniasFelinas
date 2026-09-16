@@ -9,6 +9,8 @@ import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { PhotoUpload } from "../../components/ui/PhotoUpload";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { focusFirstInvalidField } from "../../lib/formValidation";
+import type { FieldErrors } from "../../lib/formValidation";
 import { CREATE_COMEDERO_MUTATION, UPDATE_COMEDERO_MUTATION } from "./comederos.graphql";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
 import type { Comedero } from "../../types/graphql";
@@ -42,6 +44,7 @@ export function ComederoFormModal({ open, onClose, comedero, defaultColoniaId }:
 	const { colonias, loading: loadingColonias } = useColoniasLookup();
 	const [form, setForm] = useState<FormState>(() => toFormState(comedero, defaultColoniaId));
 	const [error, setError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
 	const mutationOptions = { refetchQueries: ["Comederos"], awaitRefetchQueries: true };
 	const [createComedero, { loading: creating }] = useMutation(CREATE_COMEDERO_MUTATION, mutationOptions);
@@ -50,15 +53,25 @@ export function ComederoFormModal({ open, onClose, comedero, defaultColoniaId }:
 
 	function handleClose() {
 		setError(null);
+		setFieldErrors({});
 		onClose();
+	}
+
+	function validate(): FieldErrors {
+		const errors: FieldErrors = {};
+		if (!form.coloniaId) errors.coloniaId = "Selecciona una colonia.";
+		if (!form.ubicacionDetallada.trim()) errors.ubicacionDetallada = "Indica la ubicación del comedero.";
+		return errors;
 	}
 
 	async function handleSubmit(event: FormEvent) {
 		event.preventDefault();
 		setError(null);
 
-		if (!form.coloniaId || !form.ubicacionDetallada.trim()) {
-			setError("Completa la colonia y la ubicación del comedero.");
+		const errors = validate();
+		setFieldErrors(errors);
+		if (Object.keys(errors).length > 0) {
+			focusFirstInvalidField(errors);
 			return;
 		}
 
@@ -83,7 +96,7 @@ export function ComederoFormModal({ open, onClose, comedero, defaultColoniaId }:
 	return (
 		<Modal open={open} onClose={handleClose} title={isEditing ? "Editar comedero" : "Nuevo comedero"}>
 			<form onSubmit={handleSubmit} className="space-y-4">
-				<Field label="Colonia" htmlFor="coloniaId" required>
+				<Field label="Colonia" htmlFor="coloniaId" required error={fieldErrors.coloniaId}>
 					<Select
 						id="coloniaId"
 						required
@@ -102,7 +115,7 @@ export function ComederoFormModal({ open, onClose, comedero, defaultColoniaId }:
 					</Select>
 				</Field>
 
-				<Field label="Ubicación detallada" htmlFor="ubicacionDetallada" required>
+				<Field label="Ubicación detallada" htmlFor="ubicacionDetallada" required error={fieldErrors.ubicacionDetallada}>
 					<TextInput
 						id="ubicacionDetallada"
 						required

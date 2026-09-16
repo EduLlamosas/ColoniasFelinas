@@ -9,9 +9,21 @@ interface ComboBoxProps {
 	placeholder?: string;
 	required?: boolean;
 	disabled?: boolean;
+	"aria-invalid"?: boolean;
+	"aria-describedby"?: string;
 }
 
-export function ComboBox({ id, value, onChange, options, placeholder, required, disabled }: ComboBoxProps) {
+export function ComboBox({
+	id,
+	value,
+	onChange,
+	options,
+	placeholder,
+	required,
+	disabled,
+	"aria-invalid": ariaInvalid,
+	"aria-describedby": ariaDescribedBy,
+}: ComboBoxProps) {
 	const trimmed = value.trim();
 	const filtered =
 		trimmed === "" ? options : options.filter((option) => option.toLowerCase().includes(trimmed.toLowerCase()));
@@ -24,6 +36,8 @@ export function ComboBox({ id, value, onChange, options, placeholder, required, 
 				<ComboboxInput
 					id={id}
 					required={required}
+					aria-invalid={ariaInvalid}
+					aria-describedby={ariaDescribedBy}
 					autoComplete="off"
 					className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 pr-9 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-600/40 disabled:bg-slate-100 disabled:text-slate-500"
 					displayValue={(v: string) => v}

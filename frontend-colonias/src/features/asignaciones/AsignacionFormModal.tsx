@@ -8,6 +8,8 @@ import { ComboBox } from "../../components/ui/ComboBox";
 import { Button } from "../../components/ui/Button";
 import { Alert } from "../../components/ui/Alert";
 import { getErrorMessage } from "../../lib/graphqlErrors";
+import { focusFirstInvalidField } from "../../lib/formValidation";
+import type { FieldErrors } from "../../lib/formValidation";
 import { ASIGNACIONES_QUERY, CREATE_ASIGNACION_MUTATION, UPDATE_ASIGNACION_MUTATION } from "./asignaciones.graphql";
 import { VOLUNTARIOS_QUERY } from "../voluntarios/voluntarios.graphql";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
@@ -57,6 +59,7 @@ export function AsignacionFormModal({
 	).sort((a, b) => a.localeCompare(b));
 	const [form, setForm] = useState<FormState>(() => toFormState(asignacion, defaultColoniaId, defaultVoluntarioId));
 	const [error, setError] = useState<string | null>(null);
+	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
 	const mutationOptions = { refetchQueries: ["Asignaciones"], awaitRefetchQueries: true };
 	const [createAsignacion, { loading: creating }] = useMutation(CREATE_ASIGNACION_MUTATION, mutationOptions);
@@ -65,15 +68,26 @@ export function AsignacionFormModal({
 
 	function handleClose() {
 		setError(null);
+		setFieldErrors({});
 		onClose();
+	}
+
+	function validate(): FieldErrors {
+		const errors: FieldErrors = {};
+		if (!form.voluntarioId) errors.voluntarioId = "Selecciona un voluntario.";
+		if (!form.coloniaId) errors.coloniaId = "Selecciona una colonia.";
+		if (!form.rolAsignado.trim()) errors.rolAsignado = "Indica el rol asignado.";
+		return errors;
 	}
 
 	async function handleSubmit(event: FormEvent) {
 		event.preventDefault();
 		setError(null);
 
-		if (!form.voluntarioId || !form.coloniaId || !form.rolAsignado.trim()) {
-			setError("Completa el voluntario, la colonia y el rol asignado.");
+		const errors = validate();
+		setFieldErrors(errors);
+		if (Object.keys(errors).length > 0) {
+			focusFirstInvalidField(errors);
 			return;
 		}
 
@@ -103,7 +117,7 @@ export function AsignacionFormModal({
 	return (
 		<Modal open={open} onClose={handleClose} title={isEditing ? "Editar asignación" : "Nueva asignación"}>
 			<form onSubmit={handleSubmit} className="space-y-4">
-				<Field label="Voluntario" htmlFor="voluntarioId" required>
+				<Field label="Voluntario" htmlFor="voluntarioId" required error={fieldErrors.voluntarioId}>
 					<Select
 						id="voluntarioId"
 						required
@@ -122,7 +136,7 @@ export function AsignacionFormModal({
 					</Select>
 				</Field>
 
-				<Field label="Colonia" htmlFor="coloniaId" required>
+				<Field label="Colonia" htmlFor="coloniaId" required error={fieldErrors.coloniaId}>
 					<Select
 						id="coloniaId"
 						required
@@ -141,7 +155,7 @@ export function AsignacionFormModal({
 					</Select>
 				</Field>
 
-				<Field label="Rol asignado" htmlFor="rolAsignado" required>
+				<Field label="Rol asignado" htmlFor="rolAsignado" required error={fieldErrors.rolAsignado}>
 					<ComboBox
 						id="rolAsignado"
 						required

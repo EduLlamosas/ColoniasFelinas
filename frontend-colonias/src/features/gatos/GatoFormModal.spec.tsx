@@ -45,9 +45,15 @@ describe("GatoFormModal", () => {
 		if (!form) throw new Error("No se encontró el <form> del modal");
 		fireEvent.submit(form);
 
-		expect(
-			await screen.findByText("Completa la colonia, el sexo, el estado y la capa de pelaje."),
-		).toBeInTheDocument();
+		const coloniaSelect = await screen.findByRole("combobox", { name: /colonia/i });
+		const error = await screen.findByText("Selecciona una colonia.");
+		expect(error).toBeInTheDocument();
+
+		// El error debe estar asociado al campo vía aria-describedby/aria-invalid (no solo
+		// mostrado en texto), y el foco debe saltar al primer campo erróneo.
+		expect(coloniaSelect).toHaveAttribute("aria-invalid", "true");
+		expect(coloniaSelect).toHaveAttribute("aria-describedby", error.id);
+		expect(coloniaSelect).toHaveFocus();
 		expect(onClose).not.toHaveBeenCalled();
 	});
 });
