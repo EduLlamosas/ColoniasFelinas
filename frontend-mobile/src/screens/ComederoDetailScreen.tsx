@@ -30,7 +30,26 @@ type Props = ComederosStackScreenProps<"ComederoDetail">;
 // posterior (es una traza de auditoría, no un dato de ficha).
 export function ComederoDetailScreen({ route, navigation }: Props) {
 	const { isAdmin } = useAuth();
-	const { id } = route.params;
+	const { id, from } = route.params;
+
+	function handleBack() {
+		if (!from) {
+			navigation.goBack();
+			return;
+		}
+		switch (from.tab) {
+			case "GatosTab":
+				navigation.navigate("GatosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ComederosTab":
+				navigation.navigate("ComederosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ColoniasTab":
+				navigation.navigate("ColoniasTab", { screen: from.screen, params: from.params });
+				return;
+		}
+	}
+
 	const { data, loading, error } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
 	const { data: visitasData } = useQuery<{ visitasComedero: VisitaComedero[] }>(VISITAS_COMEDERO_QUERY, {
@@ -107,8 +126,8 @@ export function ComederoDetailScreen({ route, navigation }: Props) {
 	return (
 		<ScrollView style={styles.container} contentContainerStyle={styles.content}>
 			<View style={styles.topRow}>
-				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<Text style={styles.back}>‹ Comederos</Text>
+				<TouchableOpacity onPress={handleBack}>
+					<Text style={styles.back}>{from ? "‹ Atrás" : "‹ Comederos"}</Text>
 				</TouchableOpacity>
 				{isAdmin && (
 					<TouchableOpacity onPress={() => navigation.navigate("ComederoForm", { id: comedero.id })}>
@@ -126,7 +145,12 @@ export function ComederoDetailScreen({ route, navigation }: Props) {
 			<Text style={styles.title}>{comedero.ubicacionDetallada}</Text>
 			{colonia ? (
 				<TouchableOpacity
-					onPress={() => navigation.navigate("ColoniasTab", { screen: "ColoniaDetail", params: { id: colonia.id } })}
+					onPress={() =>
+						navigation.navigate("ColoniasTab", {
+							screen: "ColoniaDetail",
+							params: { id: colonia.id, from: { tab: "ComederosTab", screen: "ComederoDetail", params: { id } } },
+						})
+					}
 				>
 					<Text style={styles.subtitleLink}>{colonia.nombre}</Text>
 				</TouchableOpacity>

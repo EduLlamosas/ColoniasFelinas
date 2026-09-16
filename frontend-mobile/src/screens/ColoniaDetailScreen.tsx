@@ -29,7 +29,25 @@ type Props = ColoniasStackScreenProps<"ColoniaDetail">;
 
 export function ColoniaDetailScreen({ route, navigation }: Props) {
 	const { isAdmin } = useAuth();
-	const { id } = route.params;
+	const { id, from } = route.params;
+
+	function handleBack() {
+		if (!from) {
+			navigation.goBack();
+			return;
+		}
+		switch (from.tab) {
+			case "GatosTab":
+				navigation.navigate("GatosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ComederosTab":
+				navigation.navigate("ComederosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ColoniasTab":
+				navigation.navigate("ColoniasTab", { screen: from.screen, params: from.params });
+				return;
+		}
+	}
 	const { data: coloniasData, loading: loadingColonia, error: coloniaError } = useQuery<{ colonias: Colonia[] }>(
 		COLONIAS_QUERY,
 	);
@@ -99,8 +117,8 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 	return (
 		<ScrollView style={styles.container} contentContainerStyle={styles.content}>
 			<View style={styles.topRow}>
-				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<Text style={styles.back}>‹ Colonias</Text>
+				<TouchableOpacity onPress={handleBack}>
+					<Text style={styles.back}>{from ? "‹ Atrás" : "‹ Colonias"}</Text>
 				</TouchableOpacity>
 				{isAdmin && (
 					<TouchableOpacity onPress={() => navigation.navigate("ColoniaForm", { id: colonia.id })}>
@@ -134,7 +152,12 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				<TouchableOpacity
 					key={gato.id}
 					style={styles.itemRow}
-					onPress={() => navigation.navigate("GatosTab", { screen: "GatoDetail", params: { id: gato.id } })}
+					onPress={() =>
+						navigation.navigate("GatosTab", {
+							screen: "GatoDetail",
+							params: { id: gato.id, from: { tab: "ColoniasTab", screen: "ColoniaDetail", params: { id } } },
+						})
+					}
 				>
 					<Text style={styles.itemTitle}>{gato.nombre ?? "Sin nombre"}</Text>
 					<Text style={styles.itemSubtitle}>
@@ -150,7 +173,10 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 					key={comedero.id}
 					style={styles.itemRow}
 					onPress={() =>
-						navigation.navigate("ComederosTab", { screen: "ComederoDetail", params: { id: comedero.id } })
+						navigation.navigate("ComederosTab", {
+							screen: "ComederoDetail",
+							params: { id: comedero.id, from: { tab: "ColoniasTab", screen: "ColoniaDetail", params: { id } } },
+						})
 					}
 				>
 					<Text style={styles.itemTitle}>{comedero.ubicacionDetallada}</Text>

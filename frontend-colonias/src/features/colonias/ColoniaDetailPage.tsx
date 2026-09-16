@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useQuery } from "@apollo/client/react";
-import { ArrowLeftIcon, PencilSquareIcon, PhotoIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, PhotoIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { BackLink } from "../../components/ui/BackLink";
 import { Spinner } from "../../components/ui/Spinner";
 import { Alert } from "../../components/ui/Alert";
 import { Badge } from "../../components/ui/Badge";
@@ -68,10 +69,7 @@ export function ColoniaDetailPage() {
 
 	return (
 		<div>
-			<Link to="/colonias" className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-				<ArrowLeftIcon className="h-4 w-4" />
-				Volver a colonias
-			</Link>
+			<BackLink fallbackTo="/colonias" fallbackLabel="Volver a colonias" />
 
 			<div className="mb-6 flex flex-wrap items-start justify-between gap-3">
 				<div>

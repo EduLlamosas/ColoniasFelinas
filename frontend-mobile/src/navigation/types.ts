@@ -2,21 +2,33 @@ import type { CompositeScreenProps, NavigatorScreenParams } from "@react-navigat
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
 
+// "Volver" desde una pantalla de detalle alcanzada saltando de pestaña (p. ej. detalle de
+// colonia -> detalle de gato) tiene que devolver a la pantalla de origen concreta, no al
+// listado de la pestaña activa - navigation.goBack() por sí solo hace pop dentro del stack de
+// la pestaña ACTUAL, que normalmente es solo [XList, XDetail], así que siempre "vuelve" al
+// listado. Cuando se llega por salto de pestaña, ese origen viaja en este param `from`; la
+// pantalla de destino navega explícitamente a él en vez de hacer goBack(). Si no hay `from`
+// (se llegó por navegación normal dentro de la misma pestaña), goBack() ya es correcto.
+export type BackTarget =
+	| { tab: "ColoniasTab"; screen: "ColoniaDetail"; params: { id: string } }
+	| { tab: "GatosTab"; screen: "GatoDetail"; params: { id: string } }
+	| { tab: "ComederosTab"; screen: "ComederoDetail"; params: { id: string } };
+
 export type ColoniasStackParamList = {
 	ColoniasList: undefined;
-	ColoniaDetail: { id: string };
+	ColoniaDetail: { id: string; from?: BackTarget };
 	ColoniaForm: { id?: string } | undefined;
 };
 
 export type GatosStackParamList = {
 	GatosList: undefined;
-	GatoDetail: { id: string };
+	GatoDetail: { id: string; from?: BackTarget };
 	GatoForm: { id?: string; defaultColoniaId?: string } | undefined;
 };
 
 export type ComederosStackParamList = {
 	ComederosList: undefined;
-	ComederoDetail: { id: string };
+	ComederoDetail: { id: string; from?: BackTarget };
 	ComederoForm: { id?: string; defaultColoniaId?: string } | undefined;
 };
 

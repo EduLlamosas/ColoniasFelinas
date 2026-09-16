@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
-import { ArrowLeftIcon, CheckBadgeIcon, PencilSquareIcon, PhotoIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, PencilSquareIcon, PhotoIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { BackLink } from "../../components/ui/BackLink";
 import { Spinner } from "../../components/ui/Spinner";
 import { Alert } from "../../components/ui/Alert";
 import { Badge } from "../../components/ui/Badge";
@@ -63,10 +64,7 @@ export function GatoDetailPage() {
 
 	return (
 		<div>
-			<Link to="/gatos" className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-				<ArrowLeftIcon className="h-4 w-4" />
-				Volver a gatos
-			</Link>
+			<BackLink fallbackTo="/gatos" fallbackLabel="Volver a gatos" />
 
 			<div className="mb-6 flex flex-wrap items-start justify-between gap-3">
 				<div>

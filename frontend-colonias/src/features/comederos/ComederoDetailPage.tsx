@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@apollo/client/react";
-import { ArrowLeftIcon, PencilSquareIcon, PhotoIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, PhotoIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { BackLink } from "../../components/ui/BackLink";
 import { Spinner } from "../../components/ui/Spinner";
 import { Alert } from "../../components/ui/Alert";
 import { Button } from "../../components/ui/Button";
@@ -61,10 +62,7 @@ export function ComederoDetailPage() {
 
 	return (
 		<div>
-			<Link to="/comederos" className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-				<ArrowLeftIcon className="h-4 w-4" />
-				Volver a comederos
-			</Link>
+			<BackLink fallbackTo="/comederos" fallbackLabel="Volver a comederos" />
 
 			<div className="mb-6 flex flex-wrap items-start justify-between gap-3">
 				<div>

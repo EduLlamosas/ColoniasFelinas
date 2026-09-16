@@ -34,7 +34,25 @@ const ESTADO_CER_VALUES = Object.keys(ESTADO_CER_LABELS) as EstadoCer[];
 // transacción del backend, actualiza el estado_cer del gato - por eso refrescamos también Gatos.
 export function GatoDetailScreen({ route, navigation }: Props) {
 	const { isAdmin } = useAuth();
-	const { id } = route.params;
+	const { id, from } = route.params;
+
+	function handleBack() {
+		if (!from) {
+			navigation.goBack();
+			return;
+		}
+		switch (from.tab) {
+			case "GatosTab":
+				navigation.navigate("GatosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ComederosTab":
+				navigation.navigate("ComederosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ColoniasTab":
+				navigation.navigate("ColoniasTab", { screen: from.screen, params: from.params });
+				return;
+		}
+	}
 	const { data, loading, error } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
 	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
 	const { data: registrosData } = useQuery<{ registrosClinicos: RegistroClinico[] }>(REGISTROS_CLINICOS_QUERY, {
@@ -126,8 +144,8 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 	return (
 		<ScrollView style={styles.container} contentContainerStyle={styles.content}>
 			<View style={styles.topRow}>
-				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<Text style={styles.back}>‹ Gatos</Text>
+				<TouchableOpacity onPress={handleBack}>
+					<Text style={styles.back}>{from ? "‹ Atrás" : "‹ Gatos"}</Text>
 				</TouchableOpacity>
 				{isAdmin && (
 					<TouchableOpacity onPress={() => navigation.navigate("GatoForm", { id: gato.id })}>
@@ -145,7 +163,12 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 			<Text style={styles.title}>{gato.nombre ?? "Sin nombre"}</Text>
 			{colonia ? (
 				<TouchableOpacity
-					onPress={() => navigation.navigate("ColoniasTab", { screen: "ColoniaDetail", params: { id: colonia.id } })}
+					onPress={() =>
+						navigation.navigate("ColoniasTab", {
+							screen: "ColoniaDetail",
+							params: { id: colonia.id, from: { tab: "GatosTab", screen: "GatoDetail", params: { id } } },
+						})
+					}
 				>
 					<Text style={styles.subtitleLink}>{colonia.nombre}</Text>
 				</TouchableOpacity>

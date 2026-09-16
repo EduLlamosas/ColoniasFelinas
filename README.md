@@ -135,5 +135,5 @@ el mismo dominio o desde dos dominios separados (configurable vía variables de 
 
 ## Licencia
 
-Proyecto académico (Trabajo de Fin de Grado). Consulta con el autor antes de reutilizar el
+Proyecto académico. Consulta con el autor antes de reutilizar el
 código fuera de un contexto educativo.
