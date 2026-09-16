@@ -29,7 +29,12 @@ export function ComederosListScreen({ navigation }: Props) {
 		<View style={styles.container}>
 			<ScreenHeader title="Comederos" subtitle="Puntos de alimentación" />
 
-			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+			<ScrollView
+				horizontal
+				showsHorizontalScrollIndicator={false}
+				style={styles.filterScroll}
+				contentContainerStyle={styles.filterRow}
+			>
 				<TouchableOpacity
 					style={[styles.chip, coloniaFilter === null && styles.chipSelected]}
 					onPress={() => setColoniaFilter(null)}
@@ -98,13 +103,17 @@ export function ComederosListScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: "#f8fafc" },
-	filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+	filterScroll: { flexGrow: 0, height: 60 },
+	filterRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "flex-start" },
 	chip: {
+		height: 36,
+		alignSelf: "flex-start",
+		justifyContent: "center",
 		borderWidth: 1,
 		borderColor: "#cbd5e1",
-		borderRadius: 999,
+		borderRadius: 20,
+		overflow: "hidden",
 		paddingHorizontal: 14,
-		paddingVertical: 8,
 		backgroundColor: "#fff",
 		marginRight: 8,
 	},
