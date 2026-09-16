@@ -46,7 +46,26 @@ function toFormState(comedero?: Comedero, defaultColoniaId?: string): FormState 
 export function ComederoFormScreen({ route, navigation }: Props) {
 	const editingId = route.params?.id;
 	const defaultColoniaId = route.params?.defaultColoniaId;
+	const from = route.params?.from;
 	const isEditing = Boolean(editingId);
+
+	function handleBack() {
+		if (!from) {
+			navigation.goBack();
+			return;
+		}
+		switch (from.tab) {
+			case "GatosTab":
+				navigation.navigate("GatosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ComederosTab":
+				navigation.navigate("ComederosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ColoniasTab":
+				navigation.navigate("ColoniasTab", { screen: from.screen, params: from.params });
+				return;
+		}
+	}
 
 	const { data: comederosData } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const comedero = editingId ? comederosData?.comederos.find((c) => c.id === editingId) : undefined;
@@ -108,7 +127,7 @@ export function ComederoFormScreen({ route, navigation }: Props) {
 			} else {
 				await createComedero({ variables: { data } });
 			}
-			navigation.goBack();
+			handleBack();
 		} catch (err) {
 			setError(getErrorMessage(err));
 		}
@@ -117,7 +136,7 @@ export function ComederoFormScreen({ route, navigation }: Props) {
 	function confirmDiscard() {
 		RNAlert.alert("Descartar cambios", "¿Seguro que quieres salir sin guardar?", [
 			{ text: "Seguir editando", style: "cancel" },
-			{ text: "Descartar", style: "destructive", onPress: () => navigation.goBack() },
+			{ text: "Descartar", style: "destructive", onPress: handleBack },
 		]);
 	}
 

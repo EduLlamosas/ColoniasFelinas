@@ -75,7 +75,26 @@ function toFormState(gato?: Gato, defaultColoniaId?: string): FormState {
 export function GatoFormScreen({ route, navigation }: Props) {
 	const editingId = route.params?.id;
 	const defaultColoniaId = route.params?.defaultColoniaId;
+	const from = route.params?.from;
 	const isEditing = Boolean(editingId);
+
+	function handleBack() {
+		if (!from) {
+			navigation.goBack();
+			return;
+		}
+		switch (from.tab) {
+			case "GatosTab":
+				navigation.navigate("GatosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ComederosTab":
+				navigation.navigate("ComederosTab", { screen: from.screen, params: from.params });
+				return;
+			case "ColoniasTab":
+				navigation.navigate("ColoniasTab", { screen: from.screen, params: from.params });
+				return;
+		}
+	}
 
 	const { data: gatosData } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
 	const gato = editingId ? gatosData?.gatos.find((g) => g.id === editingId) : undefined;
@@ -145,7 +164,7 @@ export function GatoFormScreen({ route, navigation }: Props) {
 			} else {
 				await createGato({ variables: { data } });
 			}
-			navigation.goBack();
+			handleBack();
 		} catch (err) {
 			setError(getErrorMessage(err));
 		}
@@ -154,7 +173,7 @@ export function GatoFormScreen({ route, navigation }: Props) {
 	function confirmDiscard() {
 		RNAlert.alert("Descartar cambios", "¿Seguro que quieres salir sin guardar?", [
 			{ text: "Seguir editando", style: "cancel" },
-			{ text: "Descartar", style: "destructive", onPress: () => navigation.goBack() },
+			{ text: "Descartar", style: "destructive", onPress: handleBack },
 		]);
 	}
 

@@ -23,13 +23,13 @@ export type ColoniasStackParamList = {
 export type GatosStackParamList = {
 	GatosList: undefined;
 	GatoDetail: { id: string; from?: BackTarget };
-	GatoForm: { id?: string; defaultColoniaId?: string } | undefined;
+	GatoForm: { id?: string; defaultColoniaId?: string; from?: BackTarget } | undefined;
 };
 
 export type ComederosStackParamList = {
 	ComederosList: undefined;
 	ComederoDetail: { id: string; from?: BackTarget };
-	ComederoForm: { id?: string; defaultColoniaId?: string } | undefined;
+	ComederoForm: { id?: string; defaultColoniaId?: string; from?: BackTarget } | undefined;
 };
 
 export type VoluntariosStackParamList = {

@@ -146,7 +146,23 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				<ColoniasMap colonias={[colonia]} height={200} />
 			</View>
 
-			<Text style={styles.sectionTitle}>Gatos ({loadingGatos ? "…" : gatos.length})</Text>
+			<View style={styles.sectionHeader}>
+				<Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
+					Gatos ({loadingGatos ? "…" : gatos.length})
+				</Text>
+				{isAdmin && (
+					<TouchableOpacity
+						onPress={() =>
+							navigation.navigate("GatosTab", {
+								screen: "GatoForm",
+								params: { defaultColoniaId: id, from: { tab: "ColoniasTab", screen: "ColoniaDetail", params: { id } } },
+							})
+						}
+					>
+						<Text style={styles.assignLink}>Añadir</Text>
+					</TouchableOpacity>
+				)}
+			</View>
 			{gatos.length === 0 && !loadingGatos && <Text style={styles.emptySection}>Sin gatos censados.</Text>}
 			{gatos.map((gato) => (
 				<TouchableOpacity
@@ -166,7 +182,23 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				</TouchableOpacity>
 			))}
 
-			<Text style={styles.sectionTitle}>Comederos ({loadingComederos ? "…" : comederos.length})</Text>
+			<View style={styles.sectionHeader}>
+				<Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
+					Comederos ({loadingComederos ? "…" : comederos.length})
+				</Text>
+				{isAdmin && (
+					<TouchableOpacity
+						onPress={() =>
+							navigation.navigate("ComederosTab", {
+								screen: "ComederoForm",
+								params: { defaultColoniaId: id, from: { tab: "ColoniasTab", screen: "ColoniaDetail", params: { id } } },
+							})
+						}
+					>
+						<Text style={styles.assignLink}>Añadir</Text>
+					</TouchableOpacity>
+				)}
+			</View>
 			{comederos.length === 0 && !loadingComederos && <Text style={styles.emptySection}>Sin comederos registrados.</Text>}
 			{comederos.map((comedero) => (
 				<TouchableOpacity
