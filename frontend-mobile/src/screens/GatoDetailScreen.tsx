@@ -347,6 +347,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		fontSize: 15,
 		backgroundColor: "#fff",
+		color: "#0f172a",
 	},
 	textArea: { minHeight: 70, textAlignVertical: "top" },
 	chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "flex-start" },

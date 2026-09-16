@@ -216,6 +216,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		fontSize: 15,
 		backgroundColor: "#fff",
+		color: "#0f172a",
 	},
 	linkButton: { marginTop: 8, alignSelf: "flex-start" },
 	linkButtonText: { color: "#0f766e", fontWeight: "600", fontSize: 13 },

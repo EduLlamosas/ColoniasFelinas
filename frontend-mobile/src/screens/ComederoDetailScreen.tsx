@@ -289,6 +289,7 @@ const styles = StyleSheet.create({
 		fontSize: 15,
 		backgroundColor: "#fff",
 		minHeight: 44,
+		color: "#0f172a",
 	},
 	formActions: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", gap: 16 },
 	cancelText: { color: "#64748b", fontWeight: "600", fontSize: 14 },

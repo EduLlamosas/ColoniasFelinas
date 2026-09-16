@@ -108,6 +108,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		marginBottom: 16,
 		fontSize: 15,
+		color: "#0f172a",
 	},
 	error: {
 		color: "#dc2626",

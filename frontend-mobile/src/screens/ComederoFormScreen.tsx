@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		fontSize: 15,
 		backgroundColor: "#fff",
+		color: "#0f172a",
 	},
 	chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "flex-start" },
 	chip: {
