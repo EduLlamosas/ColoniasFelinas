@@ -56,11 +56,12 @@ let vaciando = false;
 // motivo real (validación, el gato ya no existe...) se descarta - reintentarla eternamente no
 // iba a arreglarse sola.
 //
-// Límite conocido y deliberadamente sin resolver aquí: si la respuesta original SÍ llegó a
-// procesarse en el servidor pero la confirmación se perdió por el camino (el registro ya existe,
-// solo que el cliente nunca se enteró), este reintento crea un duplicado. Evitarlo del todo
-// exigiría una clave de idempotencia generada por el cliente y comprobada en el backend - un
-// cambio de API que no se ha hecho; queda anotado como limitación conocida, no oculto.
+// El caso "la respuesta original SÍ se procesó pero la confirmación se perdió por el camino" no
+// crea un duplicado: ComederoDetailScreen/GatoDetailScreen generan un idempotencyKey (UUID) una
+// única vez por pulsación de "Guardar", ANTES del primer intento - esas mismas variables (con la
+// key ya dentro) son las que llegan aquí y las que se reintentan, así que el backend reconoce el
+// reintento como la misma operación y devuelve el registro ya creado en vez de duplicarlo (ver
+// visitas-comedero.service.ts / registros-clinicos.service.ts).
 export async function vaciarColaOffline(client: ApolloClient): Promise<void> {
 	if (vaciando) return;
 	vaciando = true;
