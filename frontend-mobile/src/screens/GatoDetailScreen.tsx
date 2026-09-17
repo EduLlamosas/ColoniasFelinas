@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import * as Crypto from "expo-crypto";
 import { useMutation, useQuery } from "@apollo/client/react";
+import { DatePickerField } from "../components/DatePickerField";
 import { GATOS_QUERY } from "../features/gatos/gatos.graphql";
 import {
 	REGISTRAR_INTERVENCION_MEDICA_MUTATION,
@@ -28,6 +29,9 @@ type Props = GatosStackScreenProps<"GatoDetail">;
 
 const TIPO_EVENTO_VALUES = Object.keys(TIPO_EVENTO_CLINICO_LABELS) as TipoEventoClinico[];
 const ESTADO_CER_VALUES = Object.keys(ESTADO_CER_LABELS) as EstadoCer[];
+// Mismo margen que valida registros-clinicos.service.ts en el backend: acotar el calendario aquí
+// es solo una ayuda visual, la validación real sigue viviendo en el servidor.
+const MARGEN_FECHA_NACIMIENTO_ANOS = 5;
 
 // "Registrar Intervención Médica y Flujo CER" (Tabla 3.8): cada envío crea una tupla nueva del
 // historial (no se edita ni se borra, es trazabilidad clínica inalterable) y, en la misma
@@ -60,6 +64,12 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 	});
 	const gato = data?.gatos.find((g) => g.id === id);
 	const colonia = coloniasData?.colonias.find((c) => c.id === String(gato?.coloniaId));
+	const fechaMinimaIntervencion = (() => {
+		if (!gato?.fechaNacimiento) return undefined;
+		const margen = new Date(gato.fechaNacimiento);
+		margen.setFullYear(margen.getFullYear() - MARGEN_FECHA_NACIMIENTO_ANOS);
+		return margen;
+	})();
 
 	const [formOpen, setFormOpen] = useState(false);
 	const [tipo, setTipo] = useState<TipoEventoClinico | "">("");
@@ -236,7 +246,12 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 						</View>
 
 						<Text style={styles.label}>Fecha *</Text>
-						<TextInput style={styles.input} value={fecha} onChangeText={setFecha} placeholder="AAAA-MM-DD" />
+						<DatePickerField
+							value={fecha}
+							onChange={setFecha}
+							maximumDate={new Date()}
+							minimumDate={fechaMinimaIntervencion}
+						/>
 
 						<Text style={styles.label}>Diagnóstico *</Text>
 						<TextInput

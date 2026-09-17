@@ -1,6 +1,21 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { MockedProvider } from "@apollo/client/testing/react";
 import { GatoDetailScreen } from "./GatoDetailScreen";
+
+// El selector de fecha nativo no existe en el entorno de Jest (es un módulo nativo real) - se
+// sustituye por un doble mínimo que, al pulsarlo, dispara onChange con una fecha fija, igual que
+// haría el usuario eligiendo un día en el calendario de verdad.
+jest.mock("@react-native-community/datetimepicker", () => {
+	const { TouchableOpacity, Text } = require("react-native");
+	return function MockDateTimePicker({ onChange }: { onChange: (event: { type: string }, date: Date) => void }) {
+		return (
+			<TouchableOpacity testID="mock-date-picker" onPress={() => onChange({ type: "set" }, new Date(2026, 0, 15))}>
+				<Text>mock-date-picker</Text>
+			</TouchableOpacity>
+		);
+	};
+});
+
 import { GATOS_QUERY } from "../features/gatos/gatos.graphql";
 import {
 	REGISTRAR_INTERVENCION_MEDICA_MUTATION,
@@ -103,12 +118,9 @@ describe("GatoDetailScreen", () => {
 		await fireEvent.press(screen.getByText("Añadir registro"));
 
 		await fireEvent.press(screen.getByText("Vacunación"));
-		await fireEvent.changeText(screen.getByPlaceholderText("AAAA-MM-DD"), "2026-01-15");
-		// El diagnóstico es el único TextInput sin placeholder propio en el formulario -
-		// getAllByDisplayValue tras rellenar la fecha ya no sirve, así que se localiza por el
-		// texto de la etiqueta anterior más el orden de los TextInput del formulario.
-		const inputs = screen.getAllByDisplayValue("");
-		await fireEvent.changeText(inputs[0], "Vacuna anual");
+		await fireEvent.press(screen.getByText("Selecciona una fecha"));
+		await fireEvent.press(screen.getByTestId("mock-date-picker"));
+		await fireEvent.changeText(screen.getByDisplayValue(""), "Vacuna anual");
 
 		// nuevoEstadoCer se deja tal cual: openForm() lo preselecciona a estadoCerActual
 		// ("Capturado"), que es justo lo que espera el mock de la mutación.

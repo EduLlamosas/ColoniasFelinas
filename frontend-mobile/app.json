@@ -40,7 +40,8 @@
         {
           "locationWhenInUsePermission": "Necesitamos tu ubicación para fijar la posición de la colonia."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useMutation, useQuery } from "@apollo/client/react";
 import * as ImagePicker from "expo-image-picker";
+import { DatePickerField } from "../components/DatePickerField";
 import { CREATE_GATO_MUTATION, GATOS_QUERY, UPDATE_GATO_MUTATION } from "../features/gatos/gatos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
 import { getErrorMessage } from "../lib/graphqlErrors";
@@ -219,11 +220,12 @@ export function GatoFormScreen({ route, navigation }: Props) {
 			/>
 
 			<Text style={styles.label}>Fecha de nacimiento estimada</Text>
-			<TextInput
-				style={styles.input}
+			<DatePickerField
 				value={form.fechaNacimiento}
-				onChangeText={(v) => update("fechaNacimiento", v)}
-				placeholder="AAAA-MM-DD (opcional)"
+				onChange={(v) => update("fechaNacimiento", v)}
+				placeholder="Opcional: toca para elegir una fecha"
+				maximumDate={new Date()}
+				clearable
 			/>
 
 			<Text style={styles.label}>Sexo *</Text>
