@@ -109,7 +109,8 @@ export function ComederoFormModal({ open, onClose, comedero, defaultColoniaId }:
 						</option>
 						{colonias.map((colonia) => (
 							<option key={colonia.id} value={colonia.id}>
-								{colonia.nombre} ({colonia.codigoOficial})
+								{colonia.nombre}
+								{colonia.codigoOficial ? ` (${colonia.codigoOficial})` : ""}
 							</option>
 						))}
 					</Select>

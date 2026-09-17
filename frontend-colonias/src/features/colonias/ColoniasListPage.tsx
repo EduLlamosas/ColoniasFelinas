@@ -137,7 +137,7 @@ export function ColoniasListPage() {
 											{colonia.nombre}
 										</Link>
 									</td>
-									<td className={tdClass}>{colonia.codigoOficial}</td>
+									<td className={tdClass}>{colonia.codigoOficial ?? <span className="text-slate-400">Sin código</span>}</td>
 									<td className={tdClass}>{TIPO_SUELO_LABELS[colonia.tipoSuelo]}</td>
 									<td className={`${tdClass} font-mono text-xs`}>
 										{colonia.latitud.toFixed(5)}, {colonia.longitud.toFixed(5)}

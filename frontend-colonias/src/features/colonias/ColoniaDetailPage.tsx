@@ -75,7 +75,7 @@ export function ColoniaDetailPage() {
 				<div>
 					<h1 className="text-xl font-semibold text-slate-900">{colonia.nombre}</h1>
 					<p className="mt-1 text-sm text-slate-500">
-						{colonia.codigoOficial} · {TIPO_SUELO_LABELS[colonia.tipoSuelo]}
+						{colonia.codigoOficial ?? "Sin código oficial"} · {TIPO_SUELO_LABELS[colonia.tipoSuelo]}
 					</p>
 				</div>
 				{isAdmin && (

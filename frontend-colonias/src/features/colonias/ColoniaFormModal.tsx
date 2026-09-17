@@ -40,7 +40,7 @@ function toFormState(colonia?: Colonia): FormState {
 		};
 	}
 	return {
-		codigoOficial: colonia.codigoOficial,
+		codigoOficial: colonia.codigoOficial ?? "",
 		nombre: colonia.nombre,
 		tipoSuelo: colonia.tipoSuelo,
 		latitud: colonia.latitud,
@@ -95,7 +95,7 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 		}
 
 		const data = {
-			codigoOficial: form.codigoOficial.trim(),
+			codigoOficial: form.codigoOficial.trim() || undefined,
 			nombre: form.nombre.trim(),
 			tipoSuelo: form.tipoSuelo,
 			latitud: form.latitud,
@@ -125,10 +125,13 @@ export function ColoniaFormModal({ open, onClose, colonia }: ColoniaFormModalPro
 		>
 			<form onSubmit={handleSubmit} className="space-y-4">
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-					<Field label="Código oficial" htmlFor="codigoOficial" required>
+					<Field
+						label="Código oficial"
+						htmlFor="codigoOficial"
+						hint="Lo asigna el ayuntamiento; puedes dejarlo vacío mientras se tramita"
+					>
 						<TextInput
 							id="codigoOficial"
-							required
 							value={form.codigoOficial}
 							onChange={(e) => setForm({ ...form, codigoOficial: e.target.value })}
 						/>

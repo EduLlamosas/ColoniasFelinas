@@ -86,6 +86,30 @@ describe('Colonias (integración real, e2e)', () => {
     expect(enBaseDeDatos?.codigoOficial).toBe('E2E-COL-1');
   });
 
+  // Lo asigna el ayuntamiento en un trámite administrativo aparte, que puede tardar más que el
+  // propio censado sobre el terreno - exigirlo en el alta bloquearía registrar la colonia el
+  // mismo día que se descubre.
+  it('createColonia sin codigoOficial lo persiste como null (se asigna más adelante)', async () => {
+    const res = await graphql(CREATE_COLONIA, {
+      data: {
+        nombre: 'Colonia E2E sin código',
+        tipoSuelo: 'URBANO',
+        latitud: 40.2,
+        longitud: -3.2,
+      },
+    })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body.errors).toBeUndefined();
+    expect(res.body.data.createColonia.codigoOficial).toBeNull();
+
+    const enBaseDeDatos = await prisma.colonia.findUnique({
+      where: { id: Number(res.body.data.createColonia.id) },
+    });
+    expect(enBaseDeDatos?.codigoOficial).toBeNull();
+  });
+
   it('la query de colonias, ya autenticada, devuelve la creada', async () => {
     const res = await graphql(COLONIAS_QUERY).set('Authorization', `Bearer ${token}`).expect(200);
     expect(res.body.data.colonias).toEqual(

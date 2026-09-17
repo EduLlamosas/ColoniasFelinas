@@ -135,7 +135,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 
 			<Text style={styles.title}>{colonia.nombre}</Text>
 			<Text style={styles.subtitle}>
-				{colonia.codigoOficial} · {TIPO_SUELO_LABELS[colonia.tipoSuelo]}
+				{colonia.codigoOficial ?? "Sin código oficial"} · {TIPO_SUELO_LABELS[colonia.tipoSuelo]}
 			</Text>
 			<Text style={styles.coords}>
 				{colonia.latitud.toFixed(5)}, {colonia.longitud.toFixed(5)}

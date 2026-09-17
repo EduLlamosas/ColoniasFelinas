@@ -45,7 +45,7 @@ function toFormState(colonia?: Colonia): FormState {
 		return { codigoOficial: "", nombre: "", tipoSuelo: "", latitud: "", longitud: "", observaciones: "", fotoUrl: null };
 	}
 	return {
-		codigoOficial: colonia.codigoOficial,
+		codigoOficial: colonia.codigoOficial ?? "",
 		nombre: colonia.nombre,
 		tipoSuelo: colonia.tipoSuelo,
 		latitud: String(colonia.latitud),
@@ -125,8 +125,8 @@ export function ColoniaFormScreen({ route, navigation }: Props) {
 		const latitud = form.latitud === "" ? null : Number(form.latitud);
 		const longitud = form.longitud === "" ? null : Number(form.longitud);
 
-		if (!codigoOficial || !nombre || !form.tipoSuelo) {
-			setError("Completa código oficial, nombre y tipo de suelo.");
+		if (!nombre || !form.tipoSuelo) {
+			setError("Completa el nombre y el tipo de suelo.");
 			return;
 		}
 		if (latitud === null || longitud === null || Number.isNaN(latitud) || Number.isNaN(longitud)) {
@@ -135,7 +135,7 @@ export function ColoniaFormScreen({ route, navigation }: Props) {
 		}
 
 		const data = {
-			codigoOficial,
+			codigoOficial: codigoOficial || undefined,
 			nombre,
 			tipoSuelo: form.tipoSuelo,
 			latitud,
@@ -173,7 +173,8 @@ export function ColoniaFormScreen({ route, navigation }: Props) {
 
 			<Text style={styles.title}>{isEditing ? "Editar colonia" : "Nueva colonia"}</Text>
 
-			<Text style={styles.label}>Código oficial *</Text>
+			<Text style={styles.label}>Código oficial</Text>
+			<Text style={styles.hint}>Lo asigna el ayuntamiento; puedes dejarlo vacío mientras se tramita</Text>
 			<TextInput
 				style={styles.input}
 				value={form.codigoOficial}
@@ -278,6 +279,7 @@ const styles = StyleSheet.create({
 	back: { color: "#0f172a", fontWeight: "600", fontSize: 15, marginBottom: 16 },
 	title: { fontSize: 20, fontWeight: "700", color: "#0f172a", marginBottom: 20 },
 	label: { fontSize: 13, fontWeight: "600", color: "#334155", marginBottom: 6, marginTop: 16 },
+	hint: { fontSize: 12, color: "#94a3b8", marginBottom: 6, marginTop: -4 },
 	input: {
 		borderWidth: 1,
 		borderColor: "#cbd5e1",

@@ -12,10 +12,10 @@ import { TipoSuelo } from '@prisma/client';
 
 @InputType()
 export class CreateColoniaInput {
-  @Field()
+  @Field({ nullable: true })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  codigoOficial: string;
+  codigoOficial?: string;
 
   @Field()
   @IsString()

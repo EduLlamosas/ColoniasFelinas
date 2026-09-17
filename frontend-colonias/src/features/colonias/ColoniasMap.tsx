@@ -28,7 +28,7 @@ export function ColoniasMap({ colonias }: { colonias: Colonia[] }) {
 						<Popup>
 							<div className="text-sm">
 								<p className="font-semibold">{colonia.nombre}</p>
-								<p className="text-slate-500">{colonia.codigoOficial}</p>
+								<p className="text-slate-500">{colonia.codigoOficial ?? "Sin código oficial"}</p>
 								<p className="text-slate-500">{TIPO_SUELO_LABELS[colonia.tipoSuelo]}</p>
 								<Link to={`/colonias/${colonia.id}`} className="mt-1 inline-block text-teal-700 hover:underline">
 									Ver ficha →

@@ -20,7 +20,7 @@ export interface AuthPayload {
 
 export interface Colonia {
 	id: string;
-	codigoOficial: string;
+	codigoOficial: string | null;
 	nombre: string;
 	tipoSuelo: TipoSuelo;
 	latitud: number;

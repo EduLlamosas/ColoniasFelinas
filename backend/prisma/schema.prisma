@@ -61,7 +61,7 @@ model Usuario {
 
 model Colonia {
   id            Int       @id @default(autoincrement())
-  codigoOficial String    @unique @map("codigo_oficial")
+  codigoOficial String?   @unique @map("codigo_oficial")
   nombre        String
   tipoSuelo     TipoSuelo @map("tipo_suelo")
   latitud       Float

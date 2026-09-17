@@ -150,7 +150,8 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 						</option>
 						{colonias.map((colonia) => (
 							<option key={colonia.id} value={colonia.id}>
-								{colonia.nombre} ({colonia.codigoOficial})
+								{colonia.nombre}
+								{colonia.codigoOficial ? ` (${colonia.codigoOficial})` : ""}
 							</option>
 						))}
 					</Select>

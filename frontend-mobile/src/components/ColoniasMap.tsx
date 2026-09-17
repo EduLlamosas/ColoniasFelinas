@@ -32,7 +32,7 @@ function buildHtml(colonias: ColoniasMapProps["colonias"]): string {
 			(c) => `
 				L.marker([${c.latitud}, ${c.longitud}])
 					.addTo(map)
-					.bindPopup('<b>${escapeJs(c.nombre)}</b><br/>${escapeJs(c.codigoOficial)}<br/>${escapeJs(TIPO_SUELO_LABELS[c.tipoSuelo])}')
+					.bindPopup('<b>${escapeJs(c.nombre)}</b><br/>${escapeJs(c.codigoOficial ?? "Sin código oficial")}<br/>${escapeJs(TIPO_SUELO_LABELS[c.tipoSuelo])}')
 					.on('click', function () {
 						window.ReactNativeWebView.postMessage(${JSON.stringify(c.id)});
 					});

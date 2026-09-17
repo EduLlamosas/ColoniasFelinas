@@ -10,8 +10,11 @@ export class Colonia {
   @Field(() => ID)
   id: string;
 
-  @Field()
-  codigoOficial: string;
+  // Lo asigna el ayuntamiento cuando registra oficialmente la colonia, no el propio sistema, y
+  // ese trámite es un proceso administrativo aparte que puede tardar. Exigirlo en el alta
+  // bloquearía censar una colonia nueva sobre el terreno el mismo día que se descubre.
+  @Field(() => String, { nullable: true })
+  codigoOficial: string | null;
 
   @Field()
   nombre: string;

@@ -82,7 +82,7 @@ export function ColoniasListScreen({ navigation }: Props) {
 							<View style={styles.rowInfo}>
 								<Text style={styles.rowTitle}>{item.nombre}</Text>
 								<Text style={styles.rowSubtitle}>
-									{item.codigoOficial} · {TIPO_SUELO_LABELS[item.tipoSuelo]}
+									{item.codigoOficial ?? "Sin código oficial"} · {TIPO_SUELO_LABELS[item.tipoSuelo]}
 								</Text>
 							</View>
 						</TouchableOpacity>
