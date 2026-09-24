@@ -13,8 +13,8 @@ export class GatosService {
     return this.prisma.gato.create({ data }).catch(handlePrismaError);
   }
 
-  findAll() {
-    return this.prisma.gato.findMany();
+  findAll(coloniaId?: number) {
+    return this.prisma.gato.findMany({ where: coloniaId === undefined ? undefined : { coloniaId } });
   }
 
   async findOne(id: string) {

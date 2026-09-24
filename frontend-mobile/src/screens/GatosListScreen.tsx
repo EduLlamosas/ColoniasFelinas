@@ -8,7 +8,7 @@ import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ESTADO_CER_LABELS, SEXO_LABELS } from "../lib/enums";
 import { ScreenHeader } from "../components/ScreenHeader";
-import type { Colonia, Gato } from "../types/graphql";
+import type { ColoniaListItem, Gato } from "../types/graphql";
 import type { GatosStackScreenProps } from "../navigation/types";
 
 type Props = GatosStackScreenProps<"GatosList">;
@@ -16,7 +16,7 @@ type Props = GatosStackScreenProps<"GatosList">;
 export function GatosListScreen({ navigation }: Props) {
 	const { isAdmin } = useAuth();
 	const { data, loading, error, refetch } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
 	const coloniasById = useMemo(() => new Map(colonias.map((c) => [c.id, c])), [colonias]);
 	const [coloniaFilter, setColoniaFilter] = useState<string | null>(null);

@@ -20,7 +20,7 @@ import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
 import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
-import type { Colonia, Comedero, VisitaComedero } from "../types/graphql";
+import type { ColoniaListItem, Comedero, VisitaComedero } from "../types/graphql";
 import type { ComederosStackScreenProps } from "../navigation/types";
 
 type Props = ComederosStackScreenProps<"ComederoDetail">;
@@ -51,7 +51,7 @@ export function ComederoDetailScreen({ route, navigation }: Props) {
 	}
 
 	const { data, loading, error } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const { data: visitasData } = useQuery<{ visitasComedero: VisitaComedero[] }>(VISITAS_COMEDERO_QUERY, {
 		variables: { comederoId: Number(id) },
 	});

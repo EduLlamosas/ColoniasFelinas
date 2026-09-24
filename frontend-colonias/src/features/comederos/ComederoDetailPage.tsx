@@ -15,6 +15,7 @@ import { COMEDEROS_QUERY, REMOVE_COMEDERO_MUTATION } from "./comederos.graphql";
 import { ComederoFormModal } from "./ComederoFormModal";
 import { VisitasComederoSection } from "./VisitasComederoSection";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { removeComederoFromColonia } from "../colonias/coloniaCache";
 import type { Comedero } from "../../types/graphql";
 
 export function ComederoDetailPage() {
@@ -23,11 +24,15 @@ export function ComederoDetailPage() {
 	const navigate = useNavigate();
 	const { data, loading, error } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const { byId: coloniasById } = useColoniasLookup();
+	const comedero = data?.comederos.find((c) => c.id === id);
 	const [editOpen, setEditOpen] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState(false);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const [removeComedero, { loading: deleting }] = useMutation(REMOVE_COMEDERO_MUTATION, {
 		refetchQueries: ["Comederos"],
+		update(cache) {
+			if (comedero) removeComederoFromColonia(cache, comedero.coloniaId, comedero.id);
+		},
 	});
 
 	if (!id) return <Navigate to="/comederos" replace />;
@@ -41,8 +46,6 @@ export function ComederoDetailPage() {
 	}
 
 	if (error) return <Alert message={getErrorMessage(error)} />;
-
-	const comedero = data?.comederos.find((c) => c.id === id);
 
 	if (!comedero) {
 		return <EmptyState title="Comedero no encontrado" description="Puede que haya sido eliminado." />;

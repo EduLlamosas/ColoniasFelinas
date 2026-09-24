@@ -14,6 +14,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import {
+	COLONIA_QUERY,
 	COLONIAS_QUERY,
 	CREATE_COLONIA_MUTATION,
 	UPDATE_COLONIA_MUTATION,
@@ -59,13 +60,32 @@ export function ColoniaFormScreen({ route, navigation }: Props) {
 	const editingId = route.params?.id;
 	const isEditing = Boolean(editingId);
 
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
-	const colonia = editingId ? coloniasData?.colonias.find((c) => c.id === editingId) : undefined;
+	// ColoniasListScreen (y su COLONIAS_QUERY) solo carga los campos que muestra en tabla/mapa - no
+	// trae "observaciones". Para editar hace falta el registro completo, así que se pide aparte con
+	// COLONIA_QUERY en vez de buscar por id dentro de esa lista más ligera.
+	const { data: coloniaData, loading: loadingColonia } = useQuery<{ colonia: Colonia }>(COLONIA_QUERY, {
+		variables: { id: editingId },
+		skip: !editingId,
+	});
+	const colonia = coloniaData?.colonia;
 
 	const [form, setForm] = useState<FormState>(() => toFormState(colonia));
 	const [error, setError] = useState<string | null>(null);
 	const [uploadingPhoto, setUploadingPhoto] = useState(false);
 	const [locating, setLocating] = useState(false);
+
+	// El formulario se crea antes de que la consulta resuelva - en cuanto llegan los datos hay que
+	// rellenarlo con ellos, PERO solo esa primera vez: si se comparase por referencia (colonia !==
+	// algo), cualquier escritura posterior en la misma entidad normalizada Colonia:<id> mientras la
+	// pantalla sigue abierta (p. ej. un pull-to-refresh en ColoniasListScreen que siga montada en el
+	// stack) haría que Apollo entregase un objeto `colonia` nuevo y esto pisaría en silencio lo que
+	// el usuario ya hubiera escrito sin guardar. Se ajusta en el propio render (patrón de React) en
+	// vez de un useEffect, para no disparar un repintado de más.
+	const [formSincronizado, setFormSincronizado] = useState(false);
+	if (colonia && !formSincronizado) {
+		setFormSincronizado(true);
+		setForm(toFormState(colonia));
+	}
 
 	const mutationOptions = { refetchQueries: [{ query: COLONIAS_QUERY }], awaitRefetchQueries: true };
 	const [createColonia, { loading: creating }] = useMutation(CREATE_COLONIA_MUTATION, mutationOptions);
@@ -164,6 +184,14 @@ export function ColoniaFormScreen({ route, navigation }: Props) {
 	}
 
 	const previewUrl = resolveMediaUrl(form.fotoUrl);
+
+	if (isEditing && loadingColonia && !colonia) {
+		return (
+			<View style={styles.loadingContainer}>
+				<ActivityIndicator size="large" />
+			</View>
+		);
+	}
 
 	return (
 		<ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -275,6 +303,7 @@ export function ColoniaFormScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
 	container: { flex: 1, backgroundColor: "#f8fafc" },
+	loadingContainer: { flex: 1, backgroundColor: "#f8fafc", justifyContent: "center", alignItems: "center" },
 	content: { padding: 16, paddingTop: 56, paddingBottom: 40 },
 	back: { color: "#0f172a", fontWeight: "600", fontSize: 15, marginBottom: 16 },
 	title: { fontSize: 20, fontWeight: "700", color: "#0f172a", marginBottom: 20 },

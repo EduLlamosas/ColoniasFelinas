@@ -7,7 +7,7 @@ import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ScreenHeader } from "../components/ScreenHeader";
-import type { Colonia, Comedero } from "../types/graphql";
+import type { ColoniaListItem, Comedero } from "../types/graphql";
 import type { ComederosStackScreenProps } from "../navigation/types";
 
 type Props = ComederosStackScreenProps<"ComederosList">;
@@ -15,7 +15,7 @@ type Props = ComederosStackScreenProps<"ComederosList">;
 export function ComederosListScreen({ navigation }: Props) {
 	const { isAdmin } = useAuth();
 	const { data, loading, error, refetch } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
 	const coloniasById = useMemo(() => new Map(colonias.map((c) => [c.id, c])), [colonias]);
 	const [coloniaFilter, setColoniaFilter] = useState<string | null>(null);

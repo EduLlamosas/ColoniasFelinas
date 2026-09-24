@@ -37,9 +37,16 @@ describe('ComederosService', () => {
     expect(result).toEqual({ id: '1', ...data });
   });
 
-  it('findAll() delega en prisma.comedero.findMany', async () => {
+  it('findAll() sin coloniaId trae todos, sin where', async () => {
     prisma.comedero.findMany.mockResolvedValue([{ id: '1' }]);
     expect(await service.findAll()).toEqual([{ id: '1' }]);
+    expect(prisma.comedero.findMany).toHaveBeenCalledWith({ where: undefined });
+  });
+
+  it('findAll(coloniaId) filtra por esa colonia', async () => {
+    prisma.comedero.findMany.mockResolvedValue([{ id: '1' }]);
+    expect(await service.findAll(3)).toEqual([{ id: '1' }]);
+    expect(prisma.comedero.findMany).toHaveBeenCalledWith({ where: { coloniaId: 3 } });
   });
 
   it('findOne() devuelve el comedero cuando existe', async () => {

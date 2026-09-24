@@ -17,6 +17,7 @@ import { GATOS_QUERY, REMOVE_GATO_MUTATION } from "./gatos.graphql";
 import { GatoFormModal } from "./GatoFormModal";
 import { HistorialClinicoSection } from "./HistorialClinicoSection";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { removeGatoFromColonia } from "../colonias/coloniaCache";
 import type { Gato } from "../../types/graphql";
 
 export function GatoDetailPage() {
@@ -25,11 +26,17 @@ export function GatoDetailPage() {
 	const navigate = useNavigate();
 	const { data, loading, error } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
 	const { byId: coloniasById } = useColoniasLookup();
+	const gato = data?.gatos.find((g) => g.id === id);
 	const [editOpen, setEditOpen] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState(false);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
+	// removeGato solo devuelve un booleano - el gato que hay que quitar del array de su colonia
+	// sale del cierre (gato), no de la respuesta de la mutación.
 	const [removeGato, { loading: deleting }] = useMutation(REMOVE_GATO_MUTATION, {
 		refetchQueries: ["Gatos"],
+		update(cache) {
+			if (gato) removeGatoFromColonia(cache, gato.coloniaId, gato.id);
+		},
 	});
 
 	if (!id) return <Navigate to="/gatos" replace />;
@@ -43,8 +50,6 @@ export function GatoDetailPage() {
 	}
 
 	if (error) return <Alert message={getErrorMessage(error)} />;
-
-	const gato = data?.gatos.find((g) => g.id === id);
 
 	if (!gato) {
 		return <EmptyState title="Gato no encontrado" description="Puede que haya sido eliminado." />;

@@ -15,9 +15,10 @@ import {
 	REMOVE_ASIGNACION_MUTATION,
 } from "../features/asignaciones/asignaciones.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { removeAsignacionFromColonia } from "../features/colonias/coloniaCache";
 import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
-import type { Asignacion, Colonia, Voluntario } from "../types/graphql";
+import type { Asignacion, ColoniaListItem, Voluntario } from "../types/graphql";
 import type { VoluntariosStackScreenProps } from "../navigation/types";
 
 type Props = VoluntariosStackScreenProps<"VoluntarioDetail">;
@@ -29,11 +30,9 @@ export function VoluntarioDetailScreen({ route, navigation }: Props) {
 	const { data: asignacionesData, loading: loadingAsignaciones } = useQuery<{ asignaciones: Asignacion[] }>(
 		ASIGNACIONES_QUERY,
 	);
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const coloniasById = new Map((coloniasData?.colonias ?? []).map((c) => [c.id, c]));
-	const [removeAsignacion] = useMutation(REMOVE_ASIGNACION_MUTATION, {
-		refetchQueries: [{ query: ASIGNACIONES_QUERY }],
-	});
+	const [removeAsignacion] = useMutation(REMOVE_ASIGNACION_MUTATION);
 
 	const voluntario = data?.voluntarios.find((v) => v.id === id);
 	const asignaciones = (asignacionesData?.asignaciones ?? []).filter((a) => a.voluntarioId === Number(id));
@@ -51,6 +50,10 @@ export function VoluntarioDetailScreen({ route, navigation }: Props) {
 						try {
 							await removeAsignacion({
 								variables: { voluntarioId: asignacion.voluntarioId, coloniaId: asignacion.coloniaId },
+								refetchQueries: [{ query: ASIGNACIONES_QUERY }],
+								update(cache) {
+									removeAsignacionFromColonia(cache, asignacion.coloniaId, asignacion.voluntarioId);
+								},
 							});
 						} catch (err) {
 							RNAlert.alert("Error", getErrorMessage(err));

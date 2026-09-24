@@ -17,7 +17,7 @@ import { REMOVE_COLONIA_MUTATION } from "./colonias.graphql";
 import { useColoniasLookup } from "./useColoniasLookup";
 import { ColoniasMap } from "./ColoniasMap";
 import { ColoniaFormModal } from "./ColoniaFormModal";
-import type { Colonia } from "../../types/graphql";
+import type { ColoniaListItem } from "./useColoniasLookup";
 
 type View = "tabla" | "mapa";
 
@@ -25,21 +25,21 @@ export function ColoniasListPage() {
 	const { isAdmin } = useAuth();
 	const { colonias, loading, error } = useColoniasLookup();
 	const [view, setView] = useState<View>("tabla");
-	const [editingColonia, setEditingColonia] = useState<Colonia | undefined>(undefined);
+	const [editingColoniaId, setEditingColoniaId] = useState<string | undefined>(undefined);
 	const [formOpen, setFormOpen] = useState(false);
-	const [pendingDelete, setPendingDelete] = useState<Colonia | null>(null);
+	const [pendingDelete, setPendingDelete] = useState<ColoniaListItem | null>(null);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const [removeColonia, { loading: deleting }] = useMutation(REMOVE_COLONIA_MUTATION, {
 		refetchQueries: ["Colonias"],
 	});
 
 	function openCreate() {
-		setEditingColonia(undefined);
+		setEditingColoniaId(undefined);
 		setFormOpen(true);
 	}
 
-	function openEdit(colonia: Colonia) {
-		setEditingColonia(colonia);
+	function openEdit(colonia: ColoniaListItem) {
+		setEditingColoniaId(colonia.id);
 		setFormOpen(true);
 	}
 
@@ -171,9 +171,9 @@ export function ColoniasListPage() {
 
 			{formOpen && (
 				<ColoniaFormModal
-					key={editingColonia?.id ?? "new"}
+					key={editingColoniaId ?? "new"}
 					open={formOpen}
-					colonia={editingColonia}
+					coloniaId={editingColoniaId}
 					onClose={() => setFormOpen(false)}
 				/>
 			)}

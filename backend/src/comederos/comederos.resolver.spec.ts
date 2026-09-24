@@ -1,6 +1,6 @@
 import { ComederosResolver } from './comederos.resolver.js';
 import type { ComederosService } from './comederos.service.js';
-import type { PrismaService } from '../prisma/prisma.service.js';
+import type { GqlContext } from '../graphql/dataloaders.js';
 
 function createServiceMock() {
   return {
@@ -12,27 +12,30 @@ function createServiceMock() {
   };
 }
 
-function createPrismaMock() {
-  return { visitaComedero: { findFirst: vi.fn() } };
+function createContextMock() {
+  return { loaders: { ultimaVisitaPorComedero: { load: vi.fn() } } } as unknown as GqlContext;
 }
 
 describe('ComederosResolver', () => {
   let service: ReturnType<typeof createServiceMock>;
-  let prisma: ReturnType<typeof createPrismaMock>;
+  let ctx: ReturnType<typeof createContextMock>;
   let resolver: ComederosResolver;
 
   beforeEach(() => {
     service = createServiceMock();
-    prisma = createPrismaMock();
-    resolver = new ComederosResolver(
-      service as unknown as ComederosService,
-      prisma as unknown as PrismaService,
-    );
+    ctx = createContextMock();
+    resolver = new ComederosResolver(service as unknown as ComederosService);
   });
 
   it('findAll() delega en el service', async () => {
     service.findAll.mockResolvedValue(['x']);
     expect(await resolver.findAll()).toEqual(['x']);
+  });
+
+  it('findAll(coloniaId) delega en el service con el filtro', async () => {
+    service.findAll.mockResolvedValue(['x']);
+    expect(await resolver.findAll(1)).toEqual(['x']);
+    expect(service.findAll).toHaveBeenCalledWith(1);
   });
 
   it('findOne() delega en el service con el id', async () => {
@@ -58,19 +61,8 @@ describe('ComederosResolver', () => {
     expect(service.remove).toHaveBeenCalledWith('1');
   });
 
-  it('ultimaVisita() devuelve la fecha de la visita más reciente del comedero', async () => {
-    prisma.visitaComedero.findFirst.mockResolvedValue({ createdAt: new Date('2026-01-01') });
-    const resultado = await resolver.ultimaVisita({ id: '1' } as never);
-    expect(resultado).toEqual(new Date('2026-01-01'));
-    expect(prisma.visitaComedero.findFirst).toHaveBeenCalledWith({
-      where: { comederoId: 1 },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
-  });
-
-  it('ultimaVisita() devuelve null si el comedero no tiene visitas', async () => {
-    prisma.visitaComedero.findFirst.mockResolvedValue(null);
-    expect(await resolver.ultimaVisita({ id: '1' } as never)).toBeNull();
+  it('ultimaVisita() delega en el DataLoader con el id numérico del comedero', () => {
+    resolver.ultimaVisita({ id: '1' } as never, ctx);
+    expect(ctx.loaders.ultimaVisitaPorComedero.load).toHaveBeenCalledWith(1);
   });
 });

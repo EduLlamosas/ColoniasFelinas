@@ -13,8 +13,8 @@ export class ComederosService {
     return this.prisma.comedero.create({ data }).catch(handlePrismaError);
   }
 
-  findAll() {
-    return this.prisma.comedero.findMany();
+  findAll(coloniaId?: number) {
+    return this.prisma.comedero.findMany({ where: coloniaId === undefined ? undefined : { coloniaId } });
   }
 
   async findOne(id: string) {

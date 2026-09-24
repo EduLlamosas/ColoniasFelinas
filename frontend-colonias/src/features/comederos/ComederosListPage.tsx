@@ -16,6 +16,7 @@ import { resolveMediaUrl } from "../../lib/config";
 import { COMEDEROS_QUERY, REMOVE_COMEDERO_MUTATION } from "./comederos.graphql";
 import { ComederoFormModal } from "./ComederoFormModal";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { removeComederoFromColonia } from "../colonias/coloniaCache";
 import type { Comedero } from "../../types/graphql";
 
 export function ComederosListPage() {
@@ -27,9 +28,7 @@ export function ComederosListPage() {
 	const [formOpen, setFormOpen] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<Comedero | null>(null);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
-	const [removeComedero, { loading: deleting }] = useMutation(REMOVE_COMEDERO_MUTATION, {
-		refetchQueries: ["Comederos"],
-	});
+	const [removeComedero, { loading: deleting }] = useMutation(REMOVE_COMEDERO_MUTATION);
 
 	const comederos = useMemo(() => {
 		const all = data?.comederos ?? [];
@@ -50,7 +49,13 @@ export function ComederosListPage() {
 		if (!pendingDelete) return;
 		setDeleteError(null);
 		try {
-			await removeComedero({ variables: { id: pendingDelete.id } });
+			await removeComedero({
+				variables: { id: pendingDelete.id },
+				refetchQueries: ["Comederos"],
+				update(cache) {
+					removeComederoFromColonia(cache, pendingDelete.coloniaId, pendingDelete.id);
+				},
+			});
 			setPendingDelete(null);
 		} catch (err) {
 			setDeleteError(getErrorMessage(err));

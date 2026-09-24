@@ -9,14 +9,9 @@ import {
 	View,
 } from "react-native";
 import { useMutation, useQuery } from "@apollo/client/react";
-import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
-import { GATOS_QUERY } from "../features/gatos/gatos.graphql";
-import { COMEDEROS_QUERY } from "../features/comederos/comederos.graphql";
-import {
-	ASIGNACIONES_QUERY,
-	REMOVE_ASIGNACION_MUTATION,
-} from "../features/asignaciones/asignaciones.graphql";
-import { VOLUNTARIOS_QUERY } from "../features/voluntarios/voluntarios.graphql";
+import { COLONIA_DETAIL_QUERY } from "../features/colonias/colonias.graphql";
+import { REMOVE_ASIGNACION_MUTATION } from "../features/asignaciones/asignaciones.graphql";
+import { removeAsignacionFromColonia } from "../features/colonias/coloniaCache";
 import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
@@ -26,6 +21,12 @@ import type { Asignacion, Colonia, Comedero, Gato, Voluntario } from "../types/g
 import type { ColoniasStackScreenProps } from "../navigation/types";
 
 type Props = ColoniasStackScreenProps<"ColoniaDetail">;
+
+interface ColoniaDetail extends Colonia {
+	gatos: Gato[];
+	comederos: Comedero[];
+	asignaciones: (Asignacion & { voluntario: Pick<Voluntario, "id" | "nombre"> | null })[];
+}
 
 export function ColoniaDetailScreen({ route, navigation }: Props) {
 	const { isAdmin } = useAuth();
@@ -48,29 +49,25 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				return;
 		}
 	}
-	const { data: coloniasData, loading: loadingColonia, error: coloniaError } = useQuery<{ colonias: Colonia[] }>(
-		COLONIAS_QUERY,
-	);
-	const { data: gatosData, loading: loadingGatos } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
-	const { data: comederosData, loading: loadingComederos } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
-	const { data: asignacionesData, loading: loadingAsignaciones } = useQuery<{ asignaciones: Asignacion[] }>(
-		ASIGNACIONES_QUERY,
-	);
-	const { data: voluntariosData } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
-	const voluntariosById = new Map((voluntariosData?.voluntarios ?? []).map((v) => [v.id, v]));
-	const [removeAsignacion] = useMutation(REMOVE_ASIGNACION_MUTATION, {
-		refetchQueries: [{ query: ASIGNACIONES_QUERY }],
+
+	// Antes esta pantalla hacía 5 peticiones: la colonia suelta más gatos/comederos/asignaciones
+	// filtrados y voluntarios enteros para poder mostrar el nombre. Con los resolvers anidados del
+	// backend, todo eso llega en una sola petición.
+	const { data, loading, error } = useQuery<{ colonia: ColoniaDetail }>(COLONIA_DETAIL_QUERY, {
+		variables: { id },
 	});
+	const colonia = data?.colonia;
 
-	const colonia = coloniasData?.colonias.find((c) => c.id === id);
-	const gatos = (gatosData?.gatos ?? []).filter((g) => g.coloniaId === Number(id));
-	const comederos = (comederosData?.comederos ?? []).filter((c) => c.coloniaId === Number(id));
-	const asignaciones = (asignacionesData?.asignaciones ?? []).filter((a) => a.coloniaId === Number(id));
+	const [removeAsignacion] = useMutation(REMOVE_ASIGNACION_MUTATION);
 
-	function confirmRemove(asignacion: Asignacion) {
+	const gatos = colonia?.gatos ?? [];
+	const comederos = colonia?.comederos ?? [];
+	const asignaciones = colonia?.asignaciones ?? [];
+
+	function confirmRemove(asignacion: ColoniaDetail["asignaciones"][number]) {
 		RNAlert.alert(
 			"Quitar asignación",
-			`¿Seguro que quieres quitar a ${voluntariosById.get(String(asignacion.voluntarioId))?.nombre ?? "este voluntario"} de esta colonia?`,
+			`¿Seguro que quieres quitar a ${asignacion.voluntario?.nombre ?? "este voluntario"} de esta colonia?`,
 			[
 				{ text: "Cancelar", style: "cancel" },
 				{
@@ -80,6 +77,9 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 						try {
 							await removeAsignacion({
 								variables: { voluntarioId: asignacion.voluntarioId, coloniaId: asignacion.coloniaId },
+								update(cache) {
+									removeAsignacionFromColonia(cache, asignacion.coloniaId, asignacion.voluntarioId);
+								},
 							});
 						} catch (err) {
 							RNAlert.alert("Error", getErrorMessage(err));
@@ -90,7 +90,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 		);
 	}
 
-	if (loadingColonia) {
+	if (loading) {
 		return (
 			<View style={styles.centered}>
 				<ActivityIndicator size="large" />
@@ -98,10 +98,10 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 		);
 	}
 
-	if (coloniaError) {
+	if (error) {
 		return (
 			<View style={styles.centered}>
-				<Text style={styles.error}>{getErrorMessage(coloniaError)}</Text>
+				<Text style={styles.error}>{getErrorMessage(error)}</Text>
 			</View>
 		);
 	}
@@ -148,7 +148,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 
 			<View style={styles.sectionHeader}>
 				<Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
-					Gatos ({loadingGatos ? "…" : gatos.length})
+					Gatos ({gatos.length})
 				</Text>
 				{isAdmin && (
 					<TouchableOpacity
@@ -163,7 +163,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 					</TouchableOpacity>
 				)}
 			</View>
-			{gatos.length === 0 && !loadingGatos && <Text style={styles.emptySection}>Sin gatos censados.</Text>}
+			{gatos.length === 0 && <Text style={styles.emptySection}>Sin gatos censados.</Text>}
 			{gatos.map((gato) => (
 				<TouchableOpacity
 					key={gato.id}
@@ -184,7 +184,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 
 			<View style={styles.sectionHeader}>
 				<Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
-					Comederos ({loadingComederos ? "…" : comederos.length})
+					Comederos ({comederos.length})
 				</Text>
 				{isAdmin && (
 					<TouchableOpacity
@@ -199,7 +199,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 					</TouchableOpacity>
 				)}
 			</View>
-			{comederos.length === 0 && !loadingComederos && <Text style={styles.emptySection}>Sin comederos registrados.</Text>}
+			{comederos.length === 0 && <Text style={styles.emptySection}>Sin comederos registrados.</Text>}
 			{comederos.map((comedero) => (
 				<TouchableOpacity
 					key={comedero.id}
@@ -217,7 +217,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 
 			<View style={styles.sectionHeader}>
 				<Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
-					Voluntarios asignados ({loadingAsignaciones ? "…" : asignaciones.length})
+					Voluntarios asignados ({asignaciones.length})
 				</Text>
 				{isAdmin && (
 					<TouchableOpacity
@@ -227,7 +227,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 					</TouchableOpacity>
 				)}
 			</View>
-			{asignaciones.length === 0 && !loadingAsignaciones && (
+			{asignaciones.length === 0 && (
 				<Text style={styles.emptySection}>Sin voluntarios asignados a esta colonia.</Text>
 			)}
 			{asignaciones.map((asignacion) => (
@@ -245,7 +245,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 								: undefined
 						}
 					>
-						<Text style={styles.itemTitle}>{voluntariosById.get(String(asignacion.voluntarioId))?.nombre ?? "—"}</Text>
+						<Text style={styles.itemTitle}>{asignacion.voluntario?.nombre ?? "—"}</Text>
 						<Text style={styles.itemSubtitle}>{asignacion.rolAsignado}</Text>
 					</TouchableOpacity>
 					{isAdmin && (

@@ -33,9 +33,24 @@ describe('AsignacionesService', () => {
     expect(result).toEqual(data);
   });
 
-  it('findAll() delega en prisma.asignacionVoluntario.findMany', async () => {
+  it('findAll() sin filtros trae todas, sin where', async () => {
     prisma.asignacionVoluntario.findMany.mockResolvedValue([{ voluntarioId: 1 }]);
     expect(await service.findAll()).toEqual([{ voluntarioId: 1 }]);
+    expect(prisma.asignacionVoluntario.findMany).toHaveBeenCalledWith({ where: {} });
+  });
+
+  it('findAll(coloniaId) filtra solo por colonia', async () => {
+    prisma.asignacionVoluntario.findMany.mockResolvedValue([{ voluntarioId: 1 }]);
+    expect(await service.findAll(3)).toEqual([{ voluntarioId: 1 }]);
+    expect(prisma.asignacionVoluntario.findMany).toHaveBeenCalledWith({ where: { coloniaId: 3 } });
+  });
+
+  it('findAll(coloniaId, voluntarioId) filtra por ambos a la vez', async () => {
+    prisma.asignacionVoluntario.findMany.mockResolvedValue([{ voluntarioId: 1 }]);
+    expect(await service.findAll(3, 7)).toEqual([{ voluntarioId: 1 }]);
+    expect(prisma.asignacionVoluntario.findMany).toHaveBeenCalledWith({
+      where: { coloniaId: 3, voluntarioId: 7 },
+    });
   });
 
   it('findOne() busca por la clave compuesta voluntarioId_coloniaId', async () => {

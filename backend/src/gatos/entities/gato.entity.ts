@@ -1,5 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { EstadoCer, Sexo } from '@prisma/client';
+import { RegistroClinico } from '../../registros-clinicos/entities/registro-clinico.entity.js';
 
 registerEnumType(Sexo, { name: 'Sexo' });
 registerEnumType(EstadoCer, { name: 'EstadoCer' });
@@ -47,4 +48,11 @@ export class Gato {
 
   @Field()
   updatedAt: Date;
+
+  // Resuelto bajo demanda vía DataLoader, limitado a los 3 más recientes (ver
+  // registrosClinicosPorGato en dataloaders.ts) - es el "últimas tres vacunas de cada uno" del
+  // ejemplo de la memoria (sección 2.2.2). Para el historial completo sigue existiendo la query
+  // plana `registrosClinicos(gatoId)`, sin recortar.
+  @Field(() => [RegistroClinico])
+  registrosClinicos: RegistroClinico[];
 }

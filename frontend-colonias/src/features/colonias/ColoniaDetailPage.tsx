@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useQuery } from "@apollo/client/react";
 import { PencilSquareIcon, PhotoIcon, PlusIcon } from "@heroicons/react/24/outline";
@@ -13,34 +13,28 @@ import { useAuth } from "../auth/useAuth";
 import { ESTADO_CER_BADGE_CLASSES, ESTADO_CER_LABELS, TIPO_SUELO_LABELS } from "../../lib/enums";
 import { getErrorMessage } from "../../lib/graphqlErrors";
 import { resolveMediaUrl } from "../../lib/config";
-import { useColoniasLookup } from "./useColoniasLookup";
+import { COLONIA_DETAIL_QUERY } from "./colonias.graphql";
 import { ColoniasMap } from "./ColoniasMap";
 import { ColoniaFormModal } from "./ColoniaFormModal";
-import { GATOS_QUERY } from "../gatos/gatos.graphql";
 import { GatoFormModal } from "../gatos/GatoFormModal";
-import { COMEDEROS_QUERY } from "../comederos/comederos.graphql";
 import { ComederoFormModal } from "../comederos/ComederoFormModal";
-import { ASIGNACIONES_QUERY } from "../asignaciones/asignaciones.graphql";
 import { AsignacionFormModal } from "../asignaciones/AsignacionFormModal";
-import { VOLUNTARIOS_QUERY } from "../voluntarios/voluntarios.graphql";
-import type { Asignacion, Comedero, Gato, Voluntario } from "../../types/graphql";
+import type { Asignacion, Colonia, Comedero, Gato } from "../../types/graphql";
+
+interface ColoniaDetail extends Colonia {
+	gatos: Gato[];
+	comederos: Comedero[];
+	asignaciones: Asignacion[];
+}
 
 export function ColoniaDetailPage() {
 	const { isAdmin } = useAuth();
 	const { id } = useParams<{ id: string }>();
-	const { byId, loading: loadingColonias, error: coloniasError } = useColoniasLookup();
-	const colonia = id ? byId.get(id) : undefined;
-
-	const { data: gatosData, loading: loadingGatos } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
-	const { data: comederosData, loading: loadingComederos } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
-	const { data: asignacionesData, loading: loadingAsignaciones } = useQuery<{ asignaciones: Asignacion[] }>(
-		ASIGNACIONES_QUERY,
-	);
-	const { data: voluntariosData } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
-	const voluntariosById = useMemo(
-		() => new Map((voluntariosData?.voluntarios ?? []).map((v) => [v.id, v])),
-		[voluntariosData],
-	);
+	const { data, loading, error } = useQuery<{ colonia: ColoniaDetail }>(COLONIA_DETAIL_QUERY, {
+		variables: { id },
+		skip: !id,
+	});
+	const colonia = data?.colonia;
 
 	const [editOpen, setEditOpen] = useState(false);
 	const [gatoFormOpen, setGatoFormOpen] = useState(false);
@@ -49,7 +43,7 @@ export function ColoniaDetailPage() {
 
 	if (!id) return <Navigate to="/colonias" replace />;
 
-	if (loadingColonias) {
+	if (loading) {
 		return (
 			<div className="flex justify-center py-14">
 				<Spinner size="lg" />
@@ -57,15 +51,15 @@ export function ColoniaDetailPage() {
 		);
 	}
 
-	if (coloniasError) return <Alert message={getErrorMessage(coloniasError)} />;
+	if (error) return <Alert message={getErrorMessage(error)} />;
 
 	if (!colonia) {
 		return <EmptyState title="Colonia no encontrada" description="Puede que haya sido eliminada." />;
 	}
 
-	const gatos = (gatosData?.gatos ?? []).filter((g) => g.coloniaId === Number(id));
-	const comederos = (comederosData?.comederos ?? []).filter((c) => c.coloniaId === Number(id));
-	const asignaciones = (asignacionesData?.asignaciones ?? []).filter((a) => a.coloniaId === Number(id));
+	const gatos = colonia.gatos;
+	const comederos = colonia.comederos;
+	const asignaciones = colonia.asignaciones;
 
 	return (
 		<div>
@@ -123,9 +117,7 @@ export function ColoniaDetailPage() {
 						</Button>
 					)}
 				</div>
-				{loadingGatos ? (
-					<Spinner size="sm" />
-				) : gatos.length === 0 ? (
+				{gatos.length === 0 ? (
 					<EmptyState title="Sin gatos censados en esta colonia" />
 				) : (
 					<div className={tableWrapperClass}>
@@ -169,9 +161,7 @@ export function ColoniaDetailPage() {
 						</Button>
 					)}
 				</div>
-				{loadingComederos ? (
-					<Spinner size="sm" />
-				) : comederos.length === 0 ? (
+				{comederos.length === 0 ? (
 					<EmptyState title="Sin comederos registrados en esta colonia" />
 				) : (
 					<div className={tableWrapperClass}>
@@ -207,9 +197,7 @@ export function ColoniaDetailPage() {
 						</Button>
 					)}
 				</div>
-				{loadingAsignaciones ? (
-					<Spinner size="sm" />
-				) : asignaciones.length === 0 ? (
+				{asignaciones.length === 0 ? (
 					<EmptyState title="Sin voluntarios asignados a esta colonia" />
 				) : (
 					<div className={tableWrapperClass}>
@@ -228,7 +216,7 @@ export function ColoniaDetailPage() {
 												to={`/voluntarios/${asignacion.voluntarioId}`}
 												className="font-medium text-teal-700 hover:underline"
 											>
-												{voluntariosById.get(String(asignacion.voluntarioId))?.nombre ?? "—"}
+												{asignacion.voluntario?.nombre ?? "—"}
 											</Link>
 										</td>
 										<td className={tdClass}>
@@ -242,7 +230,7 @@ export function ColoniaDetailPage() {
 				)}
 			</section>
 
-			{editOpen && <ColoniaFormModal open={editOpen} colonia={colonia} onClose={() => setEditOpen(false)} />}
+			{editOpen && <ColoniaFormModal open={editOpen} coloniaId={id} onClose={() => setEditOpen(false)} />}
 			{gatoFormOpen && (
 				<GatoFormModal open={gatoFormOpen} defaultColoniaId={id} onClose={() => setGatoFormOpen(false)} />
 			)}

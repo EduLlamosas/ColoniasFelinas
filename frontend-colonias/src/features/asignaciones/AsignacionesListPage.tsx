@@ -16,6 +16,7 @@ import { ASIGNACIONES_QUERY, REMOVE_ASIGNACION_MUTATION } from "./asignaciones.g
 import { VOLUNTARIOS_QUERY } from "../voluntarios/voluntarios.graphql";
 import { AsignacionFormModal } from "./AsignacionFormModal";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { removeAsignacionFromColonia } from "../colonias/coloniaCache";
 import type { Asignacion, Voluntario } from "../../types/graphql";
 
 export function AsignacionesListPage() {
@@ -29,9 +30,7 @@ export function AsignacionesListPage() {
 	const [formOpen, setFormOpen] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<Asignacion | null>(null);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
-	const [removeAsignacion, { loading: deleting }] = useMutation(REMOVE_ASIGNACION_MUTATION, {
-		refetchQueries: ["Asignaciones"],
-	});
+	const [removeAsignacion, { loading: deleting }] = useMutation(REMOVE_ASIGNACION_MUTATION);
 
 	const asignaciones = data?.asignaciones ?? [];
 
@@ -51,6 +50,10 @@ export function AsignacionesListPage() {
 		try {
 			await removeAsignacion({
 				variables: { voluntarioId: pendingDelete.voluntarioId, coloniaId: pendingDelete.coloniaId },
+				refetchQueries: ["Asignaciones"],
+				update(cache) {
+					removeAsignacionFromColonia(cache, pendingDelete.coloniaId, pendingDelete.voluntarioId);
+				},
 			});
 			setPendingDelete(null);
 		} catch (err) {

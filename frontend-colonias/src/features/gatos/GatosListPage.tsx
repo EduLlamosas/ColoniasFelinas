@@ -18,6 +18,7 @@ import { resolveMediaUrl } from "../../lib/config";
 import { GATOS_QUERY, REMOVE_GATO_MUTATION } from "./gatos.graphql";
 import { GatoFormModal } from "./GatoFormModal";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { removeGatoFromColonia } from "../colonias/coloniaCache";
 import type { Gato } from "../../types/graphql";
 
 export function GatosListPage() {
@@ -29,9 +30,7 @@ export function GatosListPage() {
 	const [formOpen, setFormOpen] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<Gato | null>(null);
 	const [deleteError, setDeleteError] = useState<string | null>(null);
-	const [removeGato, { loading: deleting }] = useMutation(REMOVE_GATO_MUTATION, {
-		refetchQueries: ["Gatos"],
-	});
+	const [removeGato, { loading: deleting }] = useMutation(REMOVE_GATO_MUTATION);
 
 	const gatos = useMemo(() => {
 		const all = data?.gatos ?? [];
@@ -52,7 +51,13 @@ export function GatosListPage() {
 		if (!pendingDelete) return;
 		setDeleteError(null);
 		try {
-			await removeGato({ variables: { id: pendingDelete.id } });
+			await removeGato({
+				variables: { id: pendingDelete.id },
+				refetchQueries: ["Gatos"],
+				update(cache) {
+					removeGatoFromColonia(cache, pendingDelete.coloniaId, pendingDelete.id);
+				},
+			});
 			setPendingDelete(null);
 		} catch (err) {
 			setDeleteError(getErrorMessage(err));

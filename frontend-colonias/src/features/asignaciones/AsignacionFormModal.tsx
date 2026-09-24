@@ -13,6 +13,7 @@ import type { FieldErrors } from "../../lib/formValidation";
 import { ASIGNACIONES_QUERY, CREATE_ASIGNACION_MUTATION, UPDATE_ASIGNACION_MUTATION } from "./asignaciones.graphql";
 import { VOLUNTARIOS_QUERY } from "../voluntarios/voluntarios.graphql";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { addAsignacionToColonia } from "../colonias/coloniaCache";
 import type { Asignacion, Voluntario } from "../../types/graphql";
 
 interface FormState {
@@ -61,9 +62,21 @@ export function AsignacionFormModal({
 	const [error, setError] = useState<string | null>(null);
 	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-	const mutationOptions = { refetchQueries: ["Asignaciones"], awaitRefetchQueries: true };
-	const [createAsignacion, { loading: creating }] = useMutation(CREATE_ASIGNACION_MUTATION, mutationOptions);
-	const [updateAsignacion, { loading: updating }] = useMutation(UPDATE_ASIGNACION_MUTATION, mutationOptions);
+	// updateAsignacion nunca cambia voluntarioId/coloniaId (es su clave compuesta, fija) - Apollo
+	// actualiza sola la entidad normalizada en cualquier sitio donde esté embebida, sin necesitar
+	// un `update` aquí. Crear sí hace falta añadirlo al array de la colonia a mano.
+	const [createAsignacion, { loading: creating }] = useMutation<{ createAsignacion: Asignacion }>(
+		CREATE_ASIGNACION_MUTATION,
+		{
+			refetchQueries: ["Asignaciones"],
+			update(cache, { data }) {
+				if (data?.createAsignacion) addAsignacionToColonia(cache, data.createAsignacion);
+			},
+		},
+	);
+	const [updateAsignacion, { loading: updating }] = useMutation(UPDATE_ASIGNACION_MUTATION, {
+		refetchQueries: ["Asignaciones"],
+	});
 	const saving = creating || updating;
 
 	function handleClose() {

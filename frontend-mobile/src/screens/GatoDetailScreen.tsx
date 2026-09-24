@@ -18,11 +18,12 @@ import {
 	REGISTROS_CLINICOS_QUERY,
 } from "../features/gatos/registros-clinicos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { coloniaDetailRefetches } from "../features/colonias/coloniaDetailRefetch";
 import { useAuth } from "../features/auth/useAuth";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { ESTADO_CER_LABELS, SEXO_LABELS, TIPO_EVENTO_CLINICO_LABELS } from "../lib/enums";
-import type { Colonia, EstadoCer, Gato, RegistroClinico, TipoEventoClinico } from "../types/graphql";
+import type { ColoniaListItem, EstadoCer, Gato, RegistroClinico, TipoEventoClinico } from "../types/graphql";
 import type { GatosStackScreenProps } from "../navigation/types";
 
 type Props = GatosStackScreenProps<"GatoDetail">;
@@ -58,7 +59,7 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 		}
 	}
 	const { data, loading, error } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const { data: registrosData } = useQuery<{ registrosClinicos: RegistroClinico[] }>(REGISTROS_CLINICOS_QUERY, {
 		variables: { gatoId: Number(id) },
 	});
@@ -81,9 +82,13 @@ export function GatoDetailScreen({ route, navigation }: Props) {
 	const [registrarIntervencion, { loading: registrando }] = useMutation(
 		REGISTRAR_INTERVENCION_MEDICA_MUTATION,
 		{
+			// GATOS_QUERY sin variables refresca esta pantalla y las que no filtran; COLONIA_DETAIL_QUERY
+			// refresca ColoniaDetailScreen (muestra estadoCer, que esta mutación cambia) si sigue
+			// montada en su propio stack de pestaña.
 			refetchQueries: [
 				{ query: REGISTROS_CLINICOS_QUERY, variables: { gatoId: Number(id) } },
 				{ query: GATOS_QUERY },
+				...coloniaDetailRefetches(gato?.coloniaId),
 			],
 			awaitRefetchQueries: true,
 		},

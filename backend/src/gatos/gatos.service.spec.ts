@@ -37,9 +37,16 @@ describe('GatosService', () => {
     expect(result).toEqual({ id: '1', ...data });
   });
 
-  it('findAll() delega en prisma.gato.findMany', async () => {
+  it('findAll() sin coloniaId trae todo el censo, sin where', async () => {
     prisma.gato.findMany.mockResolvedValue([{ id: '1' }]);
     expect(await service.findAll()).toEqual([{ id: '1' }]);
+    expect(prisma.gato.findMany).toHaveBeenCalledWith({ where: undefined });
+  });
+
+  it('findAll(coloniaId) filtra por esa colonia', async () => {
+    prisma.gato.findMany.mockResolvedValue([{ id: '1' }]);
+    expect(await service.findAll(3)).toEqual([{ id: '1' }]);
+    expect(prisma.gato.findMany).toHaveBeenCalledWith({ where: { coloniaId: 3 } });
   });
 
   it('findOne() devuelve el gato cuando existe', async () => {

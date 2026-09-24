@@ -16,6 +16,7 @@ import { focusFirstInvalidField } from "../../lib/formValidation";
 import type { FieldErrors } from "../../lib/formValidation";
 import { CREATE_GATO_MUTATION, UPDATE_GATO_MUTATION } from "./gatos.graphql";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { addGatoToColonia, removeGatoFromColonia } from "../colonias/coloniaCache";
 import type { EstadoCer, Gato, Sexo } from "../../types/graphql";
 
 interface FormState {
@@ -77,9 +78,30 @@ export function GatoFormModal({ open, onClose, gato, defaultColoniaId }: GatoFor
 	const [error, setError] = useState<string | null>(null);
 	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-	const mutationOptions = { refetchQueries: ["Gatos"], awaitRefetchQueries: true };
-	const [createGato, { loading: creating }] = useMutation(CREATE_GATO_MUTATION, mutationOptions);
-	const [updateGato, { loading: updating }] = useMutation(UPDATE_GATO_MUTATION, mutationOptions);
+	// "Gatos" (por nombre) refresca cualquier listado plano activo - eso ya lo hace bien Apollo con
+	// varios sitios a la vez. Lo que Apollo no hace solo es añadir/quitar el gato del array anidado
+	// Colonia.gatos que usa ColoniaDetailPage - de eso se encargan los `update` de abajo,
+	// directamente en la caché, sin una segunda petición de red.
+	const [createGato, { loading: creating }] = useMutation<{ createGato: Gato }>(CREATE_GATO_MUTATION, {
+		refetchQueries: ["Gatos"],
+		update(cache, { data }) {
+			if (data?.createGato) addGatoToColonia(cache, data.createGato);
+		},
+	});
+	const [updateGato, { loading: updating }] = useMutation<{ updateGato: Gato }>(UPDATE_GATO_MUTATION, {
+		refetchQueries: ["Gatos"],
+		update(cache, { data }) {
+			const actualizado = data?.updateGato;
+			if (!actualizado) return;
+			// Si se cambió de colonia hay que sacarlo del array de la antigua además de meterlo en
+			// el de la nueva - si no cambió, esto último es un no-op (addGatoToColonia ya evita
+			// duplicados).
+			if (gato && gato.coloniaId !== actualizado.coloniaId) {
+				removeGatoFromColonia(cache, gato.coloniaId, actualizado.id);
+			}
+			addGatoToColonia(cache, actualizado);
+		},
+	});
 	const saving = creating || updating;
 
 	function handleClose() {

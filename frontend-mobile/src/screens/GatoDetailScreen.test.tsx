@@ -21,7 +21,7 @@ import {
 	REGISTRAR_INTERVENCION_MEDICA_MUTATION,
 	REGISTROS_CLINICOS_QUERY,
 } from "../features/gatos/registros-clinicos.graphql";
-import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { COLONIA_DETAIL_QUERY, COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
 import { AuthContext } from "../features/auth/auth-context";
 import type { AuthContextValue } from "../features/auth/auth-context";
 
@@ -79,13 +79,38 @@ function buildMocks() {
 			},
 			result: { data: { registrarIntervencionMedica: registroCreado() } },
 		},
-		// refetchQueries pide REGISTROS_CLINICOS_QUERY (misma query+variables) y GATOS_QUERY (por
-		// documento, sin variables) - cada uno consume una respuesta nueva aparte de la inicial.
+		// refetchQueries pide REGISTROS_CLINICOS_QUERY (misma query+variables), GATOS_QUERY sin
+		// variables y COLONIA_DETAIL_QUERY para la colonia del gato (para refrescar
+		// ColoniaDetailScreen si sigue montada) - cada uno consume una respuesta nueva aparte de la
+		// inicial.
 		{
 			request: { query: REGISTROS_CLINICOS_QUERY, variables: { gatoId: 7 } },
 			result: { data: { registrosClinicos: [registroCreado()] } },
 		},
 		{ request: { query: GATOS_QUERY }, result: { data: { gatos: [gato] } } },
+		{
+			request: { query: COLONIA_DETAIL_QUERY, variables: { id: "1" } },
+			result: {
+				data: {
+					colonia: {
+						__typename: "Colonia",
+						id: "1",
+						codigoOficial: null,
+						nombre: "Colonia de prueba",
+						tipoSuelo: "URBANO",
+						latitud: 0,
+						longitud: 0,
+						observaciones: null,
+						fotoUrl: null,
+						createdAt: "2026-01-01T00:00:00.000Z",
+						updatedAt: "2026-01-01T00:00:00.000Z",
+						gatos: [gato],
+						comederos: [],
+						asignaciones: [],
+					},
+				},
+			},
+		},
 	];
 }
 

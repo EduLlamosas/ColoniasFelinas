@@ -14,8 +14,8 @@ export const COMEDERO_FIELDS = gql`
 
 export const COMEDEROS_QUERY = gql`
 	${COMEDERO_FIELDS}
-	query Comederos {
-		comederos {
+	query Comederos($coloniaId: Int) {
+		comederos(coloniaId: $coloniaId) {
 			...ComederoFields
 		}
 	}

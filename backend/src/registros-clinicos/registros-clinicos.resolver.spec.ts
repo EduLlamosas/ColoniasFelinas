@@ -1,6 +1,6 @@
 import { RegistrosClinicosResolver } from './registros-clinicos.resolver.js';
 import type { RegistrosClinicosService } from './registros-clinicos.service.js';
-import type { PrismaService } from '../prisma/prisma.service.js';
+import type { GqlContext } from '../graphql/dataloaders.js';
 
 function createServiceMock() {
   return {
@@ -9,22 +9,19 @@ function createServiceMock() {
   };
 }
 
-function createPrismaMock() {
-  return { usuario: { findUnique: vi.fn() } };
+function createContextMock() {
+  return { loaders: { usuarioPorId: { load: vi.fn() } } } as unknown as GqlContext;
 }
 
 describe('RegistrosClinicosResolver', () => {
   let service: ReturnType<typeof createServiceMock>;
-  let prisma: ReturnType<typeof createPrismaMock>;
+  let ctx: ReturnType<typeof createContextMock>;
   let resolver: RegistrosClinicosResolver;
 
   beforeEach(() => {
     service = createServiceMock();
-    prisma = createPrismaMock();
-    resolver = new RegistrosClinicosResolver(
-      service as unknown as RegistrosClinicosService,
-      prisma as unknown as PrismaService,
-    );
+    ctx = createContextMock();
+    resolver = new RegistrosClinicosResolver(service as unknown as RegistrosClinicosService);
   });
 
   it('findByGato() delega en el service con gatoId', async () => {
@@ -40,15 +37,13 @@ describe('RegistrosClinicosResolver', () => {
     expect(service.create).toHaveBeenCalledWith(data, 7);
   });
 
-  it('resolveUsuario() busca al usuario por usuarioId', async () => {
-    prisma.usuario.findUnique.mockResolvedValue({ id: '7' });
-    const resultado = await resolver.resolveUsuario({ usuarioId: 7 } as never);
-    expect(resultado).toEqual({ id: '7' });
-    expect(prisma.usuario.findUnique).toHaveBeenCalledWith({ where: { id: 7 } });
+  it('resolveUsuario() delega en el DataLoader con usuarioId', () => {
+    resolver.resolveUsuario({ usuarioId: 7 } as never, ctx);
+    expect(ctx.loaders.usuarioPorId.load).toHaveBeenCalledWith(7);
   });
 
-  it('resolveUsuario() devuelve null si el registro no tiene usuarioId (previo a este campo)', async () => {
-    expect(await resolver.resolveUsuario({ usuarioId: null } as never)).toBeNull();
-    expect(prisma.usuario.findUnique).not.toHaveBeenCalled();
+  it('resolveUsuario() devuelve null si el registro no tiene usuarioId (previo a este campo), sin llamar al loader', () => {
+    expect(resolver.resolveUsuario({ usuarioId: null } as never, ctx)).toBeNull();
+    expect(ctx.loaders.usuarioPorId.load).not.toHaveBeenCalled();
   });
 });

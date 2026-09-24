@@ -12,8 +12,13 @@ export class AsignacionesService {
     return this.prisma.asignacionVoluntario.create({ data }).catch(handlePrismaError);
   }
 
-  findAll() {
-    return this.prisma.asignacionVoluntario.findMany();
+  findAll(coloniaId?: number, voluntarioId?: number) {
+    // Prisma trata un where "{}" igual que "undefined" (sin filtrar), así que no hace falta
+    // comprobar aparte si quedó vacío - mismo patrón de un filtro opcional que gatos.service.ts y
+    // comederos.service.ts, extendido a los dos filtros independientes que tiene esta entidad.
+    return this.prisma.asignacionVoluntario.findMany({
+      where: { ...(coloniaId !== undefined && { coloniaId }), ...(voluntarioId !== undefined && { voluntarioId }) },
+    });
   }
 
   async findOne(voluntarioId: number, coloniaId: number) {

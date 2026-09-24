@@ -19,8 +19,11 @@ import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { EstadisticasModule } from './estadisticas/estadisticas.module.js';
+import { BenchmarkModule } from './benchmark/benchmark.module.js';
 import { formatGraphqlError } from './graphql/format-error.util.js';
 import { createQueryComplexityPlugin } from './graphql/query-complexity.plugin.js';
+import { createLoaders } from './graphql/dataloaders.js';
+import { PrismaService } from './prisma/prisma.service.js';
 
 // La query real más anidada del proyecto (registrosClinicos { usuario { ... } }) usa 3 niveles.
 // El margen hasta 8 cubre cualquier consulta legítima futura sin dejar via libre a un cliente
@@ -65,14 +68,19 @@ const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
       { name: 'default', ttl: AUTH_RATE_LIMIT_TTL_MS, limit: AUTH_RATE_LIMIT_MAX_ATTEMPTS },
       { name: 'uploads', ttl: UPLOADS_RATE_LIMIT_TTL_MS, limit: UPLOADS_RATE_LIMIT_MAX_ATTEMPTS },
     ]),
-    GraphQLModule.forRoot<ApolloDriverConfig>({
+    GraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
-      sortSchema: true,
-      context: ({ req }: { req: unknown }) => ({ req }),
-      formatError: formatGraphqlError,
-      validationRules: [depthLimit(MAX_QUERY_DEPTH)],
-      plugins: [createQueryComplexityPlugin(MAX_QUERY_COMPLEXITY)],
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService) => ({
+        autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
+        sortSchema: true,
+        // Un DataLoader nuevo por petición (ver dataloaders.ts): si se creara una sola vez aquí
+        // fuera, su caché se compartiría entre peticiones de usuarios distintos.
+        context: ({ req }: { req: unknown }) => ({ req, loaders: createLoaders(prisma) }),
+        formatError: formatGraphqlError,
+        validationRules: [depthLimit(MAX_QUERY_DEPTH)],
+        plugins: [createQueryComplexityPlugin(MAX_QUERY_COMPLEXITY)],
+      }),
     }),
     PrismaModule,
     ColoniasModule,
@@ -86,6 +94,7 @@ const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
     AuthModule,
     UploadsModule,
     EstadisticasModule,
+    BenchmarkModule,
   ],
   controllers: [AppController],
   providers: [AppService],

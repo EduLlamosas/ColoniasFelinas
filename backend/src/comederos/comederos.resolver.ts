@@ -1,10 +1,10 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, ID, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
+import { Args, Context, ID, Int, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { RolUsuario } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import type { GqlContext } from '../graphql/dataloaders.js';
 import { ComederosService } from './comederos.service.js';
 import { Comedero } from './entities/comedero.entity.js';
 import { CreateComederoInput } from './dto/create-comedero.input.js';
@@ -14,26 +14,21 @@ import { UpdateComederoInput } from './dto/update-comedero.input.js';
 @Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
 @Resolver(() => Comedero)
 export class ComederosResolver {
-  constructor(
-    private readonly comederosService: ComederosService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly comederosService: ComederosService) {}
 
-  // Se calcula bajo demanda (última traza de visitas-comedero) en vez de guardarse como
-  // columna redundante en Comedero: una sola fuente de verdad, sin lógica extra al insertar.
+  // Se calcula bajo demanda (última traza de visitas-comedero) en vez de guardarse como columna
+  // redundante en Comedero: una sola fuente de verdad, sin lógica extra al insertar. Antes hacía
+  // un findFirst() propio por cada comedero resuelto (N+1 - deuda pendiente documentada); ahora
+  // pasa por el mismo DataLoader que el resto de campos anidados (ver dataloaders.ts).
   @ResolveField(() => Date, { nullable: true })
-  async ultimaVisita(@Parent() comedero: Comedero) {
-    const ultima = await this.prisma.visitaComedero.findFirst({
-      where: { comederoId: Number(comedero.id) },
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    });
-    return ultima?.createdAt ?? null;
+  ultimaVisita(@Parent() comedero: Comedero, @Context() ctx: GqlContext) {
+    return ctx.loaders.ultimaVisitaPorComedero.load(Number(comedero.id));
   }
 
+  // coloniaId opcional: mismo motivo que en GatosResolver.findAll.
   @Query(() => [Comedero], { name: 'comederos' })
-  findAll() {
-    return this.comederosService.findAll();
+  findAll(@Args('coloniaId', { type: () => Int, nullable: true }) coloniaId?: number) {
+    return this.comederosService.findAll(coloniaId);
   }
 
   @Query(() => Comedero, { name: 'comedero' })

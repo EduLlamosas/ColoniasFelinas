@@ -31,6 +31,14 @@ export interface Colonia {
 	updatedAt: string;
 }
 
+// COLONIAS_QUERY solo trae estos campos (ColoniaListFields) - ni "observaciones" ni las fechas de
+// auditoría, que ninguna pantalla de listado/selector muestra. El tipo lo refleja a propósito para
+// que TypeScript avise si algún consumidor intenta leer un campo que esa consulta nunca pidió.
+export type ColoniaListItem = Pick<
+	Colonia,
+	"id" | "codigoOficial" | "nombre" | "tipoSuelo" | "latitud" | "longitud" | "fotoUrl"
+>;
+
 export interface Comedero {
 	id: string;
 	coloniaId: number;
@@ -95,4 +103,7 @@ export interface Asignacion {
 	coloniaId: number;
 	rolAsignado: string;
 	createdAt: string;
+	// Solo presente cuando la query/mutación lo pide explícitamente (COLONIA_DETAIL_QUERY,
+	// CREATE_ASIGNACION_MUTATION) - ASIGNACIONES_QUERY no lo trae.
+	voluntario?: Pick<Voluntario, "id" | "nombre"> | null;
 }

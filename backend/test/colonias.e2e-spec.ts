@@ -37,6 +37,20 @@ const REMOVE_GATO = `
   }
 `;
 
+const REGISTRAR_INTERVENCION = `
+  mutation RegistrarIntervencionMedica($data: CreateRegistroClinicoInput!) {
+    registrarIntervencionMedica(data: $data) { id }
+  }
+`;
+
+const COLONIA_DETAIL_QUERY = `
+  query ColoniaDetail($id: ID!) {
+    colonia(id: $id) {
+      gatos { id registrosClinicos { fecha diagnostico } }
+    }
+  }
+`;
+
 describe('Colonias (integración real, e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -151,5 +165,57 @@ describe('Colonias (integración real, e2e)', () => {
 
     expect(borradoFinal.body.errors).toBeUndefined();
     expect(await prisma.colonia.findUnique({ where: { id: Number(coloniaId) } })).toBeNull();
+  });
+
+  // Contra Postgres de verdad, no mockeado: el recorte a "las 3 más recientes" de
+  // registrosClinicosPorGato (ver dataloaders.ts) lo hace un ROW_NUMBER() OVER (PARTITION BY ...)
+  // en SQL crudo - un test unitario con Prisma mockeado no puede detectar un error de sintaxis o
+  // de semántica en esa ventana; hace falta ejecutarlo contra la base de datos real.
+  it('colonia(id) { gatos { registrosClinicos } } devuelve solo los 3 más recientes de cada gato', async () => {
+    const colonia = await graphql(CREATE_COLONIA, {
+      data: {
+        codigoOficial: 'E2E-COL-TOP3',
+        nombre: 'Colonia para el recorte a 3',
+        tipoSuelo: 'URBANO',
+        latitud: 40.3,
+        longitud: -3.3,
+      },
+    })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const coloniaTop3Id = colonia.body.data.createColonia.id;
+
+    const gato = await graphql(CREATE_GATO, {
+      data: { coloniaId: Number(coloniaTop3Id), sexo: 'MACHO', capaPelaje: 'Atigrado', estadoCer: 'AVISTADO' },
+    })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const gatoTop3Id = gato.body.data.createGato.id;
+
+    // 4 registros con fechas distintas, creados fuera de orden cronológico a propósito - si el
+    // recorte se fiara del orden de inserción en vez de ORDER BY fecha DESC dentro de la ventana,
+    // esto lo destaparía.
+    const fechas = ['2026-02-01', '2026-04-01', '2026-01-01', '2026-03-01'];
+    for (const fecha of fechas) {
+      await graphql(REGISTRAR_INTERVENCION, {
+        data: { gatoId: Number(gatoTop3Id), tipo: 'VACUNACION', fecha, diagnostico: `Registro ${fecha}`, nuevoEstadoCer: 'AVISTADO' },
+      })
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+    }
+
+    const res = await graphql(COLONIA_DETAIL_QUERY, { id: coloniaTop3Id })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body.errors).toBeUndefined();
+    const registros = res.body.data.colonia.gatos[0].registrosClinicos;
+    expect(registros).toHaveLength(3);
+    // Los 3 más recientes, en orden descendente - el 2026-01-01 (el más antiguo) se queda fuera.
+    expect(registros.map((r: { fecha: string }) => r.fecha)).toEqual([
+      '2026-04-01T00:00:00.000Z',
+      '2026-03-01T00:00:00.000Z',
+      '2026-02-01T00:00:00.000Z',
+    ]);
   });
 });

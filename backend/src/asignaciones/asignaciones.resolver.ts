@@ -1,11 +1,13 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Context, Int, Mutation, Parent, Query, ResolveField, Resolver } from '@nestjs/graphql';
 import { RolUsuario } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
+import type { GqlContext } from '../graphql/dataloaders.js';
 import { AsignacionesService } from './asignaciones.service.js';
 import { Asignacion } from './entities/asignacion.entity.js';
+import { Voluntario } from '../voluntarios/entities/voluntario.entity.js';
 import { CreateAsignacionInput } from './dto/create-asignacion.input.js';
 import { UpdateAsignacionInput } from './dto/update-asignacion.input.js';
 
@@ -15,9 +17,18 @@ import { UpdateAsignacionInput } from './dto/update-asignacion.input.js';
 export class AsignacionesResolver {
   constructor(private readonly asignacionesService: AsignacionesService) {}
 
+  // coloniaId/voluntarioId opcionales: mismo motivo que en GatosResolver.findAll.
   @Query(() => [Asignacion], { name: 'asignaciones' })
-  findAll() {
-    return this.asignacionesService.findAll();
+  findAll(
+    @Args('coloniaId', { type: () => Int, nullable: true }) coloniaId?: number,
+    @Args('voluntarioId', { type: () => Int, nullable: true }) voluntarioId?: number,
+  ) {
+    return this.asignacionesService.findAll(coloniaId, voluntarioId);
+  }
+
+  @ResolveField(() => Voluntario, { name: 'voluntario', nullable: true })
+  resolveVoluntario(@Parent() asignacion: Asignacion, @Context() ctx: GqlContext) {
+    return ctx.loaders.voluntarioPorId.load(asignacion.voluntarioId);
   }
 
   @Query(() => Asignacion, { name: 'asignacion' })

@@ -1,5 +1,8 @@
 import { Field, Float, ID, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { TipoSuelo } from '@prisma/client';
+import { Gato } from '../../gatos/entities/gato.entity.js';
+import { Comedero } from '../../comederos/entities/comedero.entity.js';
+import { Asignacion } from '../../asignaciones/entities/asignacion.entity.js';
 
 registerEnumType(TipoSuelo, {
   name: 'TipoSuelo',
@@ -39,4 +42,17 @@ export class Colonia {
 
   @Field()
   updatedAt: Date;
+
+  // Los tres siguientes se resuelven bajo demanda vía DataLoader en ColoniasResolver (ver
+  // dataloaders.ts) - solo se calculan si la query los pide de verdad, y agrupados en una sola
+  // consulta por lote aunque se pidan para varias colonias a la vez (sin esto, N colonias
+  // dispararían N consultas separadas - el problema N+1 clásico de GraphQL).
+  @Field(() => [Gato])
+  gatos: Gato[];
+
+  @Field(() => [Comedero])
+  comederos: Comedero[];
+
+  @Field(() => [Asignacion])
+  asignaciones: Asignacion[];
 }

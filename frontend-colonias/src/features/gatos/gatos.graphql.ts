@@ -21,8 +21,8 @@ export const GATO_FIELDS = gql`
 
 export const GATOS_QUERY = gql`
 	${GATO_FIELDS}
-	query Gatos {
-		gatos {
+	query Gatos($coloniaId: Int) {
+		gatos(coloniaId: $coloniaId) {
 			...GatoFields
 		}
 	}

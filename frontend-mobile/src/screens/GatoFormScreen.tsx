@@ -16,11 +16,12 @@ import * as ImagePicker from "expo-image-picker";
 import { DatePickerField } from "../components/DatePickerField";
 import { CREATE_GATO_MUTATION, GATOS_QUERY, UPDATE_GATO_MUTATION } from "../features/gatos/gatos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { addGatoToColonia, removeGatoFromColonia } from "../features/colonias/coloniaCache";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { uploadImage } from "../lib/uploads";
 import { ESTADO_CER_LABELS, SEXO_LABELS } from "../lib/enums";
-import type { Colonia, EstadoCer, Gato, Sexo } from "../types/graphql";
+import type { ColoniaListItem, EstadoCer, Gato, Sexo } from "../types/graphql";
 import type { GatosStackScreenProps } from "../navigation/types";
 
 type Props = GatosStackScreenProps<"GatoForm">;
@@ -99,16 +100,35 @@ export function GatoFormScreen({ route, navigation }: Props) {
 
 	const { data: gatosData } = useQuery<{ gatos: Gato[] }>(GATOS_QUERY);
 	const gato = editingId ? gatosData?.gatos.find((g) => g.id === editingId) : undefined;
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
 
 	const [form, setForm] = useState<FormState>(() => toFormState(gato, defaultColoniaId));
 	const [error, setError] = useState<string | null>(null);
 	const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-	const mutationOptions = { refetchQueries: [{ query: GATOS_QUERY }], awaitRefetchQueries: true };
-	const [createGato, { loading: creating }] = useMutation(CREATE_GATO_MUTATION, mutationOptions);
-	const [updateGato, { loading: updating }] = useMutation(UPDATE_GATO_MUTATION, mutationOptions);
+	// { query: GATOS_QUERY } refresca la lista plana (GatosListScreen). Lo que Apollo no hace solo
+	// es añadir/quitar el gato del array anidado Colonia.gatos que usa ColoniaDetailScreen - de eso
+	// se encargan los `update` de abajo, directamente en la caché, sin una segunda petición de red.
+	const [createGato, { loading: creating }] = useMutation<{ createGato: Gato }>(CREATE_GATO_MUTATION, {
+		refetchQueries: [{ query: GATOS_QUERY }],
+		awaitRefetchQueries: true,
+		update(cache, { data }) {
+			if (data?.createGato) addGatoToColonia(cache, data.createGato);
+		},
+	});
+	const [updateGato, { loading: updating }] = useMutation<{ updateGato: Gato }>(UPDATE_GATO_MUTATION, {
+		refetchQueries: [{ query: GATOS_QUERY }],
+		awaitRefetchQueries: true,
+		update(cache, { data }) {
+			const actualizado = data?.updateGato;
+			if (!actualizado) return;
+			if (gato && gato.coloniaId !== actualizado.coloniaId) {
+				removeGatoFromColonia(cache, gato.coloniaId, actualizado.id);
+			}
+			addGatoToColonia(cache, actualizado);
+		},
+	});
 	const saving = creating || updating;
 
 	function update<K extends keyof FormState>(key: K, value: FormState[K]) {

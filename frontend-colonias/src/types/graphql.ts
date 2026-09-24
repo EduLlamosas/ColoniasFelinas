@@ -96,6 +96,9 @@ export interface Asignacion {
 	coloniaId: number;
 	rolAsignado: string;
 	createdAt: string;
+	// Solo presente cuando la query/mutación lo pide explícitamente (COLONIA_DETAIL_QUERY,
+	// CREATE_ASIGNACION_MUTATION) - ASIGNACIONES_QUERY no lo trae.
+	voluntario?: Pick<Voluntario, "id" | "nombre"> | null;
 }
 
 export interface GatosPorEstadoCer {

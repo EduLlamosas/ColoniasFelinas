@@ -1,5 +1,6 @@
 import { ColoniasResolver } from './colonias.resolver.js';
 import type { ColoniasService } from './colonias.service.js';
+import type { GqlContext } from '../graphql/dataloaders.js';
 
 function createServiceMock() {
   return {
@@ -11,12 +12,24 @@ function createServiceMock() {
   };
 }
 
+function createContextMock() {
+  return {
+    loaders: {
+      gatosPorColonia: { load: vi.fn() },
+      comederosPorColonia: { load: vi.fn() },
+      asignacionesPorColonia: { load: vi.fn() },
+    },
+  } as unknown as GqlContext;
+}
+
 describe('ColoniasResolver', () => {
   let service: ReturnType<typeof createServiceMock>;
+  let ctx: ReturnType<typeof createContextMock>;
   let resolver: ColoniasResolver;
 
   beforeEach(() => {
     service = createServiceMock();
+    ctx = createContextMock();
     resolver = new ColoniasResolver(service as unknown as ColoniasService);
   });
 
@@ -47,5 +60,22 @@ describe('ColoniasResolver', () => {
   it('removeColonia() delega en el service con el id y devuelve true', async () => {
     expect(await resolver.removeColonia('1')).toBe(true);
     expect(service.remove).toHaveBeenCalledWith('1');
+  });
+
+  // Los tres siguientes son lo que permite anidar "colonia { gatos { ... } }" en una sola query
+  // (ver dataloaders.ts) - cada uno delega en su DataLoader con el id numérico de la colonia.
+  it('resolveGatos() delega en el DataLoader con el id de la colonia', () => {
+    resolver.resolveGatos({ id: '1' } as never, ctx);
+    expect(ctx.loaders.gatosPorColonia.load).toHaveBeenCalledWith(1);
+  });
+
+  it('resolveComederos() delega en el DataLoader con el id de la colonia', () => {
+    resolver.resolveComederos({ id: '1' } as never, ctx);
+    expect(ctx.loaders.comederosPorColonia.load).toHaveBeenCalledWith(1);
+  });
+
+  it('resolveAsignaciones() delega en el DataLoader con el id de la colonia', () => {
+    resolver.resolveAsignaciones({ id: '1' } as never, ctx);
+    expect(ctx.loaders.asignacionesPorColonia.load).toHaveBeenCalledWith(1);
   });
 });

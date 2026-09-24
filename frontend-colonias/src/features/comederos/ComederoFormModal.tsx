@@ -13,6 +13,7 @@ import { focusFirstInvalidField } from "../../lib/formValidation";
 import type { FieldErrors } from "../../lib/formValidation";
 import { CREATE_COMEDERO_MUTATION, UPDATE_COMEDERO_MUTATION } from "./comederos.graphql";
 import { useColoniasLookup } from "../colonias/useColoniasLookup";
+import { addComederoToColonia, removeComederoFromColonia } from "../colonias/coloniaCache";
 import type { Comedero } from "../../types/graphql";
 
 interface FormState {
@@ -46,9 +47,26 @@ export function ComederoFormModal({ open, onClose, comedero, defaultColoniaId }:
 	const [error, setError] = useState<string | null>(null);
 	const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-	const mutationOptions = { refetchQueries: ["Comederos"], awaitRefetchQueries: true };
-	const [createComedero, { loading: creating }] = useMutation(CREATE_COMEDERO_MUTATION, mutationOptions);
-	const [updateComedero, { loading: updating }] = useMutation(UPDATE_COMEDERO_MUTATION, mutationOptions);
+	const [createComedero, { loading: creating }] = useMutation<{ createComedero: Comedero }>(
+		CREATE_COMEDERO_MUTATION,
+		{
+			refetchQueries: ["Comederos"],
+			update(cache, { data }) {
+				if (data?.createComedero) addComederoToColonia(cache, data.createComedero);
+			},
+		},
+	);
+	const [updateComedero, { loading: updating }] = useMutation<{ updateComedero: Comedero }>(UPDATE_COMEDERO_MUTATION, {
+		refetchQueries: ["Comederos"],
+		update(cache, { data }) {
+			const actualizado = data?.updateComedero;
+			if (!actualizado) return;
+			if (comedero && comedero.coloniaId !== actualizado.coloniaId) {
+				removeComederoFromColonia(cache, comedero.coloniaId, actualizado.id);
+			}
+			addComederoToColonia(cache, actualizado);
+		},
+	});
 	const saving = creating || updating;
 
 	function handleClose() {

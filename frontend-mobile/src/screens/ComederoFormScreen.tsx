@@ -18,10 +18,11 @@ import {
 	UPDATE_COMEDERO_MUTATION,
 } from "../features/comederos/comederos.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { addComederoToColonia, removeComederoFromColonia } from "../features/colonias/coloniaCache";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { resolveMediaUrl } from "../lib/config";
 import { uploadImage } from "../lib/uploads";
-import type { Colonia, Comedero } from "../types/graphql";
+import type { ColoniaListItem, Comedero } from "../types/graphql";
 import type { ComederosStackScreenProps } from "../navigation/types";
 
 type Props = ComederosStackScreenProps<"ComederoForm">;
@@ -69,16 +70,40 @@ export function ComederoFormScreen({ route, navigation }: Props) {
 
 	const { data: comederosData } = useQuery<{ comederos: Comedero[] }>(COMEDEROS_QUERY);
 	const comedero = editingId ? comederosData?.comederos.find((c) => c.id === editingId) : undefined;
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
 
 	const [form, setForm] = useState<FormState>(() => toFormState(comedero, defaultColoniaId));
 	const [error, setError] = useState<string | null>(null);
 	const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-	const mutationOptions = { refetchQueries: [{ query: COMEDEROS_QUERY }], awaitRefetchQueries: true };
-	const [createComedero, { loading: creating }] = useMutation(CREATE_COMEDERO_MUTATION, mutationOptions);
-	const [updateComedero, { loading: updating }] = useMutation(UPDATE_COMEDERO_MUTATION, mutationOptions);
+	// { query: COMEDEROS_QUERY } refresca la lista plana. Lo que Apollo no hace solo es añadir/
+	// quitar el comedero del array anidado Colonia.comederos que usa ColoniaDetailScreen.
+	const [createComedero, { loading: creating }] = useMutation<{ createComedero: Comedero }>(
+		CREATE_COMEDERO_MUTATION,
+		{
+			refetchQueries: [{ query: COMEDEROS_QUERY }],
+			awaitRefetchQueries: true,
+			update(cache, { data }) {
+				if (data?.createComedero) addComederoToColonia(cache, data.createComedero);
+			},
+		},
+	);
+	const [updateComedero, { loading: updating }] = useMutation<{ updateComedero: Comedero }>(
+		UPDATE_COMEDERO_MUTATION,
+		{
+			refetchQueries: [{ query: COMEDEROS_QUERY }],
+			awaitRefetchQueries: true,
+			update(cache, { data }) {
+				const actualizado = data?.updateComedero;
+				if (!actualizado) return;
+				if (comedero && comedero.coloniaId !== actualizado.coloniaId) {
+					removeComederoFromColonia(cache, comedero.coloniaId, actualizado.id);
+				}
+				addComederoToColonia(cache, actualizado);
+			},
+		},
+	);
 	const saving = creating || updating;
 
 	function update<K extends keyof FormState>(key: K, value: FormState[K]) {

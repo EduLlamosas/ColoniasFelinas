@@ -7,7 +7,9 @@ import "./leafletIconSetup";
 
 const DEFAULT_CENTER: [number, number] = [43.4623, -3.8099];
 
-export function ColoniasMap({ colonias }: { colonias: Colonia[] }) {
+type ColoniaMapPoint = Pick<Colonia, "id" | "nombre" | "codigoOficial" | "tipoSuelo" | "latitud" | "longitud">;
+
+export function ColoniasMap({ colonias }: { colonias: ColoniaMapPoint[] }) {
 	const center: [number, number] =
 		colonias.length > 0
 			? [

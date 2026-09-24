@@ -8,7 +8,7 @@ import { resolveMediaUrl } from "../lib/config";
 import { TIPO_SUELO_LABELS } from "../lib/enums";
 import { ColoniasMap } from "../components/ColoniasMap";
 import { ScreenHeader } from "../components/ScreenHeader";
-import type { Colonia } from "../types/graphql";
+import type { ColoniaListItem } from "../types/graphql";
 import type { ColoniasStackScreenProps } from "../navigation/types";
 
 type Props = ColoniasStackScreenProps<"ColoniasList">;
@@ -16,7 +16,7 @@ type View_ = "tabla" | "mapa";
 
 export function ColoniasListScreen({ navigation }: Props) {
 	const { user, isAdmin } = useAuth();
-	const { data, loading, error, refetch } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data, loading, error, refetch } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const colonias = data?.colonias ?? [];
 	const [view, setView] = useState<View_>("tabla");
 

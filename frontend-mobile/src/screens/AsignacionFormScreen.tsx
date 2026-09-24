@@ -7,10 +7,11 @@ import {
 	UPDATE_ASIGNACION_MUTATION,
 } from "../features/asignaciones/asignaciones.graphql";
 import { COLONIAS_QUERY } from "../features/colonias/colonias.graphql";
+import { addAsignacionToColonia } from "../features/colonias/coloniaCache";
 import { VOLUNTARIOS_QUERY } from "../features/voluntarios/voluntarios.graphql";
 import { getErrorMessage } from "../lib/graphqlErrors";
 import { ROL_ASIGNADO_SUGERENCIAS } from "../lib/enums";
-import type { Asignacion, Colonia, Voluntario } from "../types/graphql";
+import type { Asignacion, ColoniaListItem, Voluntario } from "../types/graphql";
 import type { VoluntariosStackScreenProps } from "../navigation/types";
 
 type Props = VoluntariosStackScreenProps<"AsignacionForm">;
@@ -25,7 +26,7 @@ export function AsignacionFormScreen({ route, navigation }: Props) {
 				(a) => a.voluntarioId === Number(fixedVoluntarioId) && a.coloniaId === Number(fixedColoniaId),
 			)
 		: undefined;
-	const { data: coloniasData } = useQuery<{ colonias: Colonia[] }>(COLONIAS_QUERY);
+	const { data: coloniasData } = useQuery<{ colonias: ColoniaListItem[] }>(COLONIAS_QUERY);
 	const colonias = coloniasData?.colonias ?? [];
 	const { data: voluntariosData } = useQuery<{ voluntarios: Voluntario[] }>(VOLUNTARIOS_QUERY);
 	const voluntarios = voluntariosData?.voluntarios ?? [];
@@ -38,9 +39,23 @@ export function AsignacionFormScreen({ route, navigation }: Props) {
 	const [rolAsignado, setRolAsignado] = useState(existing?.rolAsignado ?? "");
 	const [error, setError] = useState<string | null>(null);
 
-	const mutationOptions = { refetchQueries: [{ query: ASIGNACIONES_QUERY }], awaitRefetchQueries: true };
-	const [createAsignacion, { loading: creating }] = useMutation(CREATE_ASIGNACION_MUTATION, mutationOptions);
-	const [updateAsignacion, { loading: updating }] = useMutation(UPDATE_ASIGNACION_MUTATION, mutationOptions);
+	// updateAsignacion nunca cambia voluntarioId/coloniaId (es su clave compuesta, fija) - Apollo
+	// actualiza sola la entidad normalizada en cualquier sitio donde esté embebida. Crear sí hace
+	// falta añadirlo al array de la colonia a mano.
+	const [createAsignacion, { loading: creating }] = useMutation<{ createAsignacion: Asignacion }>(
+		CREATE_ASIGNACION_MUTATION,
+		{
+			refetchQueries: [{ query: ASIGNACIONES_QUERY }],
+			awaitRefetchQueries: true,
+			update(cache, { data }) {
+				if (data?.createAsignacion) addAsignacionToColonia(cache, data.createAsignacion);
+			},
+		},
+	);
+	const [updateAsignacion, { loading: updating }] = useMutation(UPDATE_ASIGNACION_MUTATION, {
+		refetchQueries: [{ query: ASIGNACIONES_QUERY }],
+		awaitRefetchQueries: true,
+	});
 	const saving = creating || updating;
 
 	async function handleSubmit() {
