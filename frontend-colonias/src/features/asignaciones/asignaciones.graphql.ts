@@ -2,6 +2,7 @@ import { gql } from "@apollo/client";
 
 export const ASIGNACION_FIELDS = gql`
 	fragment AsignacionFields on Asignacion {
+		id
 		voluntarioId
 		coloniaId
 		rolAsignado
@@ -42,15 +43,15 @@ export const CREATE_ASIGNACION_MUTATION = gql`
 
 export const UPDATE_ASIGNACION_MUTATION = gql`
 	${ASIGNACION_FIELDS}
-	mutation UpdateAsignacion($voluntarioId: Int!, $coloniaId: Int!, $data: UpdateAsignacionInput!) {
-		updateAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId, data: $data) {
+	mutation UpdateAsignacion($id: ID!, $data: UpdateAsignacionInput!) {
+		updateAsignacion(id: $id, data: $data) {
 			...AsignacionFields
 		}
 	}
 `;
 
 export const REMOVE_ASIGNACION_MUTATION = gql`
-	mutation RemoveAsignacion($voluntarioId: Int!, $coloniaId: Int!) {
-		removeAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId)
+	mutation RemoveAsignacion($id: ID!) {
+		removeAsignacion(id: $id)
 	}
 `;

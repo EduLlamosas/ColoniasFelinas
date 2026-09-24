@@ -1,8 +1,11 @@
-import { Field, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
 import { Voluntario } from '../../voluntarios/entities/voluntario.entity.js';
 
 @ObjectType()
 export class Asignacion {
+  @Field(() => ID)
+  id: string;
+
   @Field(() => Int)
   voluntarioId: number;
 

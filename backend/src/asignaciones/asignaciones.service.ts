@@ -21,29 +21,23 @@ export class AsignacionesService {
     });
   }
 
-  async findOne(voluntarioId: number, coloniaId: number) {
-    const asignacion = await this.prisma.asignacionVoluntario.findUnique({
-      where: { voluntarioId_coloniaId: { voluntarioId, coloniaId } },
-    });
+  async findOne(id: string) {
+    const asignacion = await this.prisma.asignacionVoluntario.findUnique({ where: { id: Number(id) } });
     if (!asignacion) {
-      throw new NotFoundException('Asignación no encontrada');
+      throw new NotFoundException(`Asignación ${id} no encontrada`);
     }
     return asignacion;
   }
 
-  async update(voluntarioId: number, coloniaId: number, data: UpdateAsignacionInput) {
-    await this.findOne(voluntarioId, coloniaId);
+  async update(id: string, data: UpdateAsignacionInput) {
+    await this.findOne(id);
     return this.prisma.asignacionVoluntario
-      .update({ where: { voluntarioId_coloniaId: { voluntarioId, coloniaId } }, data })
+      .update({ where: { id: Number(id) }, data })
       .catch(handlePrismaError);
   }
 
-  async remove(voluntarioId: number, coloniaId: number) {
-    await this.findOne(voluntarioId, coloniaId);
-    return this.prisma.asignacionVoluntario
-      .delete({
-        where: { voluntarioId_coloniaId: { voluntarioId, coloniaId } },
-      })
-      .catch(handlePrismaError);
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.asignacionVoluntario.delete({ where: { id: Number(id) } }).catch(handlePrismaError);
   }
 }

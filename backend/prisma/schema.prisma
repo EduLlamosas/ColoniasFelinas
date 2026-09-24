@@ -186,6 +186,7 @@ model Voluntario {
 }
 
 model AsignacionVoluntario {
+  id           Int      @id @default(autoincrement())
   voluntarioId Int      @map("voluntario_id")
   coloniaId    Int      @map("colonia_id")
   rolAsignado  String   @map("rol_asignado") @db.VarChar(100)
@@ -194,6 +195,12 @@ model AsignacionVoluntario {
   voluntario Voluntario @relation(fields: [voluntarioId], references: [id], onDelete: Cascade)
   colonia    Colonia    @relation(fields: [coloniaId], references: [id], onDelete: Cascade)
 
-  @@id([voluntarioId, coloniaId])
+  // Antes esta pareja era la propia clave primaria (@@id) - un voluntario no puede tener dos
+  // asignaciones a la misma colonia, esa regla de negocio no cambia. Lo que cambia es que ahora la
+  // identidad de la fila es "id", como en el resto de entidades, para que la API de GraphQL
+  // (asignacion(id), updateAsignacion(id, ...), removeAsignacion(id)) y la caché de Apollo en el
+  // cliente (que necesita una clave estable de un solo campo para normalizar) funcionen igual que
+  // con cualquier otra entidad, sin el caso especial que tenían hasta ahora.
+  @@unique([voluntarioId, coloniaId])
   @@map("voluntarios_colonias")
 }

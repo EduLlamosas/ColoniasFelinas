@@ -99,21 +99,21 @@ export function addAsignacionToColonia(cache: ApolloCache, asignacion: Asignacio
 		fields: {
 			asignaciones(existing, { readField }) {
 				const list = asList(existing);
-				if (list.some((r) => readField("voluntarioId", r as never) === asignacion.voluntarioId)) return list;
+				if (list.some((r) => readField("id", r as never) === asignacion.id)) return list;
 				return [...list, ref];
 			},
 		},
 	});
 }
 
-export function removeAsignacionFromColonia(cache: ApolloCache, coloniaId: number | string, voluntarioId: number) {
+export function removeAsignacionFromColonia(cache: ApolloCache, coloniaId: number | string, asignacionId: string) {
 	const id = coloniaCacheId(cache, coloniaId);
 	if (!id) return;
 	cache.modify({
 		id,
 		fields: {
 			asignaciones: (existing, { readField }) =>
-				asList(existing).filter((r) => readField("voluntarioId", r as never) !== voluntarioId),
+				asList(existing).filter((r) => readField("id", r as never) !== asignacionId),
 		},
 	});
 }

@@ -107,13 +107,7 @@ export function AsignacionFormModal({
 		try {
 			const rolAsignado = form.rolAsignado.trim();
 			if (isEditing && asignacion) {
-				await updateAsignacion({
-					variables: {
-						voluntarioId: asignacion.voluntarioId,
-						coloniaId: asignacion.coloniaId,
-						data: { rolAsignado },
-					},
-				});
+				await updateAsignacion({ variables: { id: asignacion.id, data: { rolAsignado } } });
 			} else {
 				await createAsignacion({
 					variables: {

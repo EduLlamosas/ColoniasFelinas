@@ -99,6 +99,7 @@ export interface Voluntario {
 }
 
 export interface Asignacion {
+	id: string;
 	voluntarioId: number;
 	coloniaId: number;
 	rolAsignado: string;

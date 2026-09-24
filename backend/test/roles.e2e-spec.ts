@@ -19,6 +19,7 @@ describe('Restricción de roles en mutaciones (e2e)', () => {
   let comederoId: number;
   let gatoId: number;
   let voluntarioId: number;
+  let asignacionId: number;
 
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
@@ -56,6 +57,11 @@ describe('Restricción de roles en mutaciones (e2e)', () => {
       },
     });
     voluntarioId = voluntario.id;
+
+    const asignacion = await prisma.asignacionVoluntario.create({
+      data: { voluntarioId, coloniaId, rolAsignado: 'Fixture roles E2E' },
+    });
+    asignacionId = asignacion.id;
   });
 
   afterAll(async () => {
@@ -142,18 +148,20 @@ describe('Restricción de roles en mutaciones (e2e)', () => {
     },
     {
       nombre: 'createAsignacion',
-      query: `mutation($data: CreateAsignacionInput!) { createAsignacion(data: $data) { voluntarioId } }`,
-      buildVariables: () => ({ data: { voluntarioId, coloniaId, rolAsignado: 'X' } }),
+      query: `mutation($data: CreateAsignacionInput!) { createAsignacion(data: $data) { id } }`,
+      // voluntarioId/coloniaId ya tienen una asignación real (el fixture de arriba) - da igual
+      // para GESTOR, nunca llega a ejecutarse, pero así no depende de que el par sea libre.
+      buildVariables: () => ({ data: { voluntarioId, coloniaId: coloniaId + 1, rolAsignado: 'X' } }),
     },
     {
       nombre: 'updateAsignacion',
-      query: `mutation($voluntarioId: Int!, $coloniaId: Int!, $data: UpdateAsignacionInput!) { updateAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId, data: $data) { voluntarioId } }`,
-      buildVariables: () => ({ voluntarioId, coloniaId, data: { rolAsignado: 'Y' } }),
+      query: `mutation($id: ID!, $data: UpdateAsignacionInput!) { updateAsignacion(id: $id, data: $data) { id } }`,
+      buildVariables: () => ({ id: asignacionId, data: { rolAsignado: 'Y' } }),
     },
     {
       nombre: 'removeAsignacion',
-      query: `mutation($voluntarioId: Int!, $coloniaId: Int!) { removeAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId) }`,
-      buildVariables: () => ({ voluntarioId, coloniaId }),
+      query: `mutation($id: ID!) { removeAsignacion(id: $id) }`,
+      buildVariables: () => ({ id: asignacionId }),
     },
   ];
 

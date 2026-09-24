@@ -210,7 +210,7 @@ export function ColoniaDetailPage() {
 							</thead>
 							<tbody>
 								{asignaciones.map((asignacion) => (
-									<tr key={asignacion.voluntarioId} className={trClass}>
+									<tr key={asignacion.id} className={trClass}>
 										<td className={tdClass}>
 											<Link
 												to={`/voluntarios/${asignacion.voluntarioId}`}

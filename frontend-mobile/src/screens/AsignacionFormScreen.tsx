@@ -39,9 +39,9 @@ export function AsignacionFormScreen({ route, navigation }: Props) {
 	const [rolAsignado, setRolAsignado] = useState(existing?.rolAsignado ?? "");
 	const [error, setError] = useState<string | null>(null);
 
-	// updateAsignacion nunca cambia voluntarioId/coloniaId (es su clave compuesta, fija) - Apollo
-	// actualiza sola la entidad normalizada en cualquier sitio donde esté embebida. Crear sí hace
-	// falta añadirlo al array de la colonia a mano.
+	// updateAsignacion nunca cambia voluntarioId/coloniaId - Apollo actualiza sola la entidad
+	// normalizada (por "id") en cualquier sitio donde esté embebida. Crear sí hace falta añadirlo
+	// al array de la colonia a mano.
 	const [createAsignacion, { loading: creating }] = useMutation<{ createAsignacion: Asignacion }>(
 		CREATE_ASIGNACION_MUTATION,
 		{
@@ -68,9 +68,9 @@ export function AsignacionFormScreen({ route, navigation }: Props) {
 		}
 
 		try {
-			if (isEditing) {
+			if (isEditing && existing) {
 				await updateAsignacion({
-					variables: { voluntarioId: Number(voluntarioId), coloniaId: Number(coloniaId), data: { rolAsignado: rol } },
+					variables: { id: existing.id, data: { rolAsignado: rol } },
 				});
 			} else {
 				await createAsignacion({

@@ -49,10 +49,10 @@ export function AsignacionesListPage() {
 		setDeleteError(null);
 		try {
 			await removeAsignacion({
-				variables: { voluntarioId: pendingDelete.voluntarioId, coloniaId: pendingDelete.coloniaId },
+				variables: { id: pendingDelete.id },
 				refetchQueries: ["Asignaciones"],
 				update(cache) {
-					removeAsignacionFromColonia(cache, pendingDelete.coloniaId, pendingDelete.voluntarioId);
+					removeAsignacionFromColonia(cache, pendingDelete.coloniaId, pendingDelete.id);
 				},
 			});
 			setPendingDelete(null);
@@ -103,7 +103,7 @@ export function AsignacionesListPage() {
 						</thead>
 						<tbody>
 							{asignaciones.map((asignacion) => (
-								<tr key={`${asignacion.voluntarioId}-${asignacion.coloniaId}`} className={trClass}>
+								<tr key={asignacion.id} className={trClass}>
 									<td className={tdClass}>
 										<Link
 											to={`/voluntarios/${asignacion.voluntarioId}`}
@@ -149,7 +149,7 @@ export function AsignacionesListPage() {
 
 			{formOpen && (
 				<AsignacionFormModal
-					key={editingAsignacion ? `${editingAsignacion.voluntarioId}-${editingAsignacion.coloniaId}` : "new"}
+					key={editingAsignacion?.id ?? "new"}
 					open={formOpen}
 					asignacion={editingAsignacion}
 					onClose={() => setFormOpen(false)}

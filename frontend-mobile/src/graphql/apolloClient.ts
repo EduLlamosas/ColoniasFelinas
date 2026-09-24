@@ -44,12 +44,5 @@ const errorLink = new ErrorLink(({ error, operation }) => {
 
 export const client = new ApolloClient({
 	link: from([errorLink, authLink, httpLink]),
-	cache: new InMemoryCache({
-		typePolicies: {
-			// Asignacion no tiene campo "id" propio - su clave es el par (voluntarioId, coloniaId).
-			// Sin decírselo a Apollo explícitamente, no puede normalizarla como entidad propia y
-			// cache.modify/writeFragment no funcionan sobre ella.
-			Asignacion: { keyFields: ["voluntarioId", "coloniaId"] },
-		},
-	}),
+	cache: new InMemoryCache(),
 });

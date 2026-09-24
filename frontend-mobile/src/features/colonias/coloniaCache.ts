@@ -6,9 +6,9 @@ import type { Asignacion, Comedero, Gato } from "../../types/graphql";
 
 // ColoniaDetailScreen vive de una única COLONIA_DETAIL_QUERY, con gatos/comederos/asignaciones
 // anidados dentro de la propia colonia. Apollo normaliza cada Gato/Comedero/Asignacion como
-// entidad propia (por eso Asignacion necesita "keyFields" en apolloClient.ts - no tiene "id"), así
-// que cuando cambian sus campos escalares Apollo los actualiza solo en cualquier sitio donde estén
-// embebidos. Lo que Apollo NO hace solo es la pertenencia a un array: crear un gato no lo añade
+// entidad propia por su "id", así que cuando cambian sus campos escalares Apollo los actualiza
+// solo en cualquier sitio donde estén embebidos. Lo que Apollo NO hace solo es la pertenencia a
+// un array: crear un gato no lo añade
 // automáticamente a Colonia.gatos, ni borrarlo lo quita de ahí. Estas funciones hacen justo eso,
 // directamente en la caché en memoria (sin ninguna petición de red), y se llaman una vez desde la
 // definición de cada mutación - no hay que acordarse de nada en cada sitio donde se usa esa
@@ -99,21 +99,21 @@ export function addAsignacionToColonia(cache: ApolloCache, asignacion: Asignacio
 		fields: {
 			asignaciones(existing, { readField }) {
 				const list = asList(existing);
-				if (list.some((r) => readField("voluntarioId", r as never) === asignacion.voluntarioId)) return list;
+				if (list.some((r) => readField("id", r as never) === asignacion.id)) return list;
 				return [...list, ref];
 			},
 		},
 	});
 }
 
-export function removeAsignacionFromColonia(cache: ApolloCache, coloniaId: number | string, voluntarioId: number) {
+export function removeAsignacionFromColonia(cache: ApolloCache, coloniaId: number | string, asignacionId: string) {
 	const id = coloniaCacheId(cache, coloniaId);
 	if (!id) return;
 	cache.modify({
 		id,
 		fields: {
 			asignaciones: (existing, { readField }) =>
-				asList(existing).filter((r) => readField("voluntarioId", r as never) !== voluntarioId),
+				asList(existing).filter((r) => readField("id", r as never) !== asignacionId),
 		},
 	});
 }

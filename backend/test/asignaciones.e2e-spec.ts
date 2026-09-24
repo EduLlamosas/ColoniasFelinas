@@ -7,19 +7,19 @@ import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_ASIGNACION = `
   mutation CreateAsignacion($data: CreateAsignacionInput!) {
-    createAsignacion(data: $data) { voluntarioId coloniaId rolAsignado }
+    createAsignacion(data: $data) { id voluntarioId coloniaId rolAsignado }
   }
 `;
 
 const ASIGNACION_QUERY = `
-  query Asignacion($voluntarioId: Int!, $coloniaId: Int!) {
-    asignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId) { rolAsignado }
+  query Asignacion($id: ID!) {
+    asignacion(id: $id) { rolAsignado }
   }
 `;
 
 const UPDATE_ASIGNACION = `
-  mutation UpdateAsignacion($voluntarioId: Int!, $coloniaId: Int!, $data: UpdateAsignacionInput!) {
-    updateAsignacion(voluntarioId: $voluntarioId, coloniaId: $coloniaId, data: $data) {
+  mutation UpdateAsignacion($id: ID!, $data: UpdateAsignacionInput!) {
+    updateAsignacion(id: $id, data: $data) {
       rolAsignado
     }
   }
@@ -37,6 +37,7 @@ describe('Asignaciones (integración real, e2e)', () => {
   let token: string;
   let coloniaId: number;
   let voluntarioId: number;
+  let asignacionId: string;
 
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
@@ -72,7 +73,7 @@ describe('Asignaciones (integración real, e2e)', () => {
   const graphql = (query: string, variables?: Record<string, unknown>) =>
     request(app.getHttpServer()).post('/graphql').send({ query, variables });
 
-  it('createAsignacion persiste con la clave compuesta voluntarioId+coloniaId', async () => {
+  it('createAsignacion persiste, respetando la clave única voluntarioId+coloniaId', async () => {
     const res = await graphql(CREATE_ASIGNACION, {
       data: { voluntarioId, coloniaId, rolAsignado: 'SUPERVISOR' },
     })
@@ -80,10 +81,10 @@ describe('Asignaciones (integración real, e2e)', () => {
       .expect(200);
 
     expect(res.body.errors).toBeUndefined();
+    asignacionId = res.body.data.createAsignacion.id;
+    expect(asignacionId).toBeDefined();
 
-    const enBaseDeDatos = await prisma.asignacionVoluntario.findUnique({
-      where: { voluntarioId_coloniaId: { voluntarioId, coloniaId } },
-    });
+    const enBaseDeDatos = await prisma.asignacionVoluntario.findUnique({ where: { id: Number(asignacionId) } });
     expect(enBaseDeDatos?.rolAsignado).toBe('SUPERVISOR');
   });
 
@@ -97,17 +98,16 @@ describe('Asignaciones (integración real, e2e)', () => {
     expect(res.body.errors?.[0]?.extensions?.code).toBe('CONFLICT');
   });
 
-  it('la query por ambos ids devuelve la asignación', async () => {
-    const res = await graphql(ASIGNACION_QUERY, { voluntarioId, coloniaId })
+  it('la query por id devuelve la asignación', async () => {
+    const res = await graphql(ASIGNACION_QUERY, { id: asignacionId })
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(res.body.data.asignacion.rolAsignado).toBe('SUPERVISOR');
   });
 
-  it('updateAsignacion cambia el rol sin cambiar la identidad del par', async () => {
+  it('updateAsignacion cambia el rol sin cambiar la identidad de la fila', async () => {
     const res = await graphql(UPDATE_ASIGNACION, {
-      voluntarioId,
-      coloniaId,
+      id: asignacionId,
       data: { rolAsignado: 'ALIMENTADOR_PRINCIPAL' },
     })
       .set('Authorization', `Bearer ${token}`)
@@ -120,9 +120,7 @@ describe('Asignaciones (integración real, e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const enBaseDeDatos = await prisma.asignacionVoluntario.findUnique({
-      where: { voluntarioId_coloniaId: { voluntarioId, coloniaId } },
-    });
+    const enBaseDeDatos = await prisma.asignacionVoluntario.findUnique({ where: { id: Number(asignacionId) } });
     expect(enBaseDeDatos).toBeNull();
   });
 });

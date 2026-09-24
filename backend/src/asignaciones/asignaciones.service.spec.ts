@@ -53,60 +53,57 @@ describe('AsignacionesService', () => {
     });
   });
 
-  it('findOne() busca por la clave compuesta voluntarioId_coloniaId', async () => {
-    prisma.asignacionVoluntario.findUnique.mockResolvedValue({ voluntarioId: 1, coloniaId: 2 });
+  it('findOne() busca por id', async () => {
+    prisma.asignacionVoluntario.findUnique.mockResolvedValue({ id: 5, voluntarioId: 1, coloniaId: 2 });
 
-    const result = await service.findOne(1, 2);
+    const result = await service.findOne('5');
 
-    expect(prisma.asignacionVoluntario.findUnique).toHaveBeenCalledWith({
-      where: { voluntarioId_coloniaId: { voluntarioId: 1, coloniaId: 2 } },
-    });
-    expect(result).toEqual({ voluntarioId: 1, coloniaId: 2 });
+    expect(prisma.asignacionVoluntario.findUnique).toHaveBeenCalledWith({ where: { id: 5 } });
+    expect(result).toEqual({ id: 5, voluntarioId: 1, coloniaId: 2 });
   });
 
   it('findOne() lanza NotFoundException cuando no existe la asignación', async () => {
     prisma.asignacionVoluntario.findUnique.mockResolvedValue(null);
-    await expect(service.findOne(1, 2)).rejects.toThrow(NotFoundException);
+    await expect(service.findOne('5')).rejects.toThrow(NotFoundException);
   });
 
-  it('update() comprueba que existe antes de actualizar, con ambos ids', async () => {
-    prisma.asignacionVoluntario.findUnique.mockResolvedValue({ voluntarioId: 1, coloniaId: 2 });
+  it('update() comprueba que existe antes de actualizar', async () => {
+    prisma.asignacionVoluntario.findUnique.mockResolvedValue({ id: 5, voluntarioId: 1, coloniaId: 2 });
     prisma.asignacionVoluntario.update.mockResolvedValue({
+      id: 5,
       voluntarioId: 1,
       coloniaId: 2,
       rolAsignado: 'CAPTURADOR',
     });
 
-    const result = await service.update(1, 2, { rolAsignado: 'CAPTURADOR' } as never);
+    const result = await service.update('5', { rolAsignado: 'CAPTURADOR' } as never);
 
     expect(prisma.asignacionVoluntario.update).toHaveBeenCalledWith({
-      where: { voluntarioId_coloniaId: { voluntarioId: 1, coloniaId: 2 } },
+      where: { id: 5 },
       data: { rolAsignado: 'CAPTURADOR' },
     });
-    expect(result).toEqual({ voluntarioId: 1, coloniaId: 2, rolAsignado: 'CAPTURADOR' });
+    expect(result).toEqual({ id: 5, voluntarioId: 1, coloniaId: 2, rolAsignado: 'CAPTURADOR' });
   });
 
   it('update() propaga el NotFoundException sin llegar a llamar a update()', async () => {
     prisma.asignacionVoluntario.findUnique.mockResolvedValue(null);
-    await expect(service.update(1, 2, {} as never)).rejects.toThrow(NotFoundException);
+    await expect(service.update('5', {} as never)).rejects.toThrow(NotFoundException);
     expect(prisma.asignacionVoluntario.update).not.toHaveBeenCalled();
   });
 
-  it('remove() comprueba que existe antes de borrar, con ambos ids', async () => {
-    prisma.asignacionVoluntario.findUnique.mockResolvedValue({ voluntarioId: 1, coloniaId: 2 });
-    prisma.asignacionVoluntario.delete.mockResolvedValue({ voluntarioId: 1, coloniaId: 2 });
+  it('remove() comprueba que existe antes de borrar', async () => {
+    prisma.asignacionVoluntario.findUnique.mockResolvedValue({ id: 5, voluntarioId: 1, coloniaId: 2 });
+    prisma.asignacionVoluntario.delete.mockResolvedValue({ id: 5, voluntarioId: 1, coloniaId: 2 });
 
-    const result = await service.remove(1, 2);
+    const result = await service.remove('5');
 
-    expect(prisma.asignacionVoluntario.delete).toHaveBeenCalledWith({
-      where: { voluntarioId_coloniaId: { voluntarioId: 1, coloniaId: 2 } },
-    });
-    expect(result).toEqual({ voluntarioId: 1, coloniaId: 2 });
+    expect(prisma.asignacionVoluntario.delete).toHaveBeenCalledWith({ where: { id: 5 } });
+    expect(result).toEqual({ id: 5, voluntarioId: 1, coloniaId: 2 });
   });
 
   it('remove() propaga el NotFoundException sin llegar a llamar a delete()', async () => {
     prisma.asignacionVoluntario.findUnique.mockResolvedValue(null);
-    await expect(service.remove(1, 2)).rejects.toThrow(NotFoundException);
+    await expect(service.remove('5')).rejects.toThrow(NotFoundException);
     expect(prisma.asignacionVoluntario.delete).not.toHaveBeenCalled();
   });
 });

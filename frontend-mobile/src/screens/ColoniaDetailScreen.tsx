@@ -76,9 +76,9 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 					onPress: async () => {
 						try {
 							await removeAsignacion({
-								variables: { voluntarioId: asignacion.voluntarioId, coloniaId: asignacion.coloniaId },
+								variables: { id: asignacion.id },
 								update(cache) {
-									removeAsignacionFromColonia(cache, asignacion.coloniaId, asignacion.voluntarioId);
+									removeAsignacionFromColonia(cache, asignacion.coloniaId, asignacion.id);
 								},
 							});
 						} catch (err) {
@@ -231,7 +231,7 @@ export function ColoniaDetailScreen({ route, navigation }: Props) {
 				<Text style={styles.emptySection}>Sin voluntarios asignados a esta colonia.</Text>
 			)}
 			{asignaciones.map((asignacion) => (
-				<View key={asignacion.voluntarioId} style={[styles.itemRow, styles.assignmentRow]}>
+				<View key={asignacion.id} style={[styles.itemRow, styles.assignmentRow]}>
 					<TouchableOpacity
 						style={styles.itemRowMain}
 						disabled={!isAdmin}

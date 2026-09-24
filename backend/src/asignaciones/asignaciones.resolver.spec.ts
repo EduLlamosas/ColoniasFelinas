@@ -38,10 +38,10 @@ describe('AsignacionesResolver', () => {
     expect(service.findAll).toHaveBeenCalledWith(1, 2);
   });
 
-  it('findOne() delega en el service con voluntarioId y coloniaId por separado', async () => {
-    service.findOne.mockResolvedValue({ voluntarioId: 1, coloniaId: 2 });
-    expect(await resolver.findOne(1, 2)).toEqual({ voluntarioId: 1, coloniaId: 2 });
-    expect(service.findOne).toHaveBeenCalledWith(1, 2);
+  it('findOne() delega en el service con el id', async () => {
+    service.findOne.mockResolvedValue({ id: '5', voluntarioId: 1, coloniaId: 2 });
+    expect(await resolver.findOne('5')).toEqual({ id: '5', voluntarioId: 1, coloniaId: 2 });
+    expect(service.findOne).toHaveBeenCalledWith('5');
   });
 
   it('createAsignacion() delega en el service con el input', async () => {
@@ -50,15 +50,15 @@ describe('AsignacionesResolver', () => {
     expect(service.create).toHaveBeenCalledWith(data);
   });
 
-  it('updateAsignacion() delega en el service con ambos ids y los datos por separado', async () => {
+  it('updateAsignacion() delega en el service con el id y los datos por separado', async () => {
     const data = { rolAsignado: 'CAPTURADOR' };
-    await resolver.updateAsignacion(1, 2, data as never);
-    expect(service.update).toHaveBeenCalledWith(1, 2, data);
+    await resolver.updateAsignacion('5', data as never);
+    expect(service.update).toHaveBeenCalledWith('5', data);
   });
 
-  it('removeAsignacion() delega en el service con ambos ids y devuelve true', async () => {
-    expect(await resolver.removeAsignacion(1, 2)).toBe(true);
-    expect(service.remove).toHaveBeenCalledWith(1, 2);
+  it('removeAsignacion() delega en el service con el id y devuelve true', async () => {
+    expect(await resolver.removeAsignacion('5')).toBe(true);
+    expect(service.remove).toHaveBeenCalledWith('5');
   });
 
   it('resolveVoluntario() delega en el DataLoader con voluntarioId', () => {
