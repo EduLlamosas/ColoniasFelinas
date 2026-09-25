@@ -11,7 +11,13 @@ function createPrismaMock() {
     visitaComedero: { groupBy: vi.fn() },
     // $queryRaw se invoca como plantilla etiquetada (prisma.$queryRaw`...`), que en JS no es más
     // que llamar a la función con (strings, ...valores) - un vi.fn() normal vale igual como doble.
+    // runTenantScopedRaw (ver dataloaders.ts#registrosClinicosPorGato) envuelve esa llamada en
+    // $transaction - aquí basta con que "tx" sea el propio mock, reutilizando su $queryRaw.
     $queryRaw: vi.fn(),
+    $executeRawUnsafe: vi.fn(),
+    $transaction: vi.fn(function (this: unknown, callback: (tx: unknown) => unknown) {
+      return callback(this);
+    }),
   };
 }
 

@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { ComederosService } from './comederos.service.js';
 import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
+import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 vi.mock('../uploads/uploaded-file.util.js', () => ({ deleteUploadedFile: vi.fn() }));
@@ -27,13 +28,15 @@ describe('ComederosService', () => {
     vi.mocked(deleteUploadedFile).mockClear();
   });
 
-  it('create() delega en prisma.comedero.create', async () => {
+  it('create() delega en prisma.comedero.create, con el organizacionId de la sesión', async () => {
     const data = { coloniaId: 1, ubicacionDetallada: 'junto al banco' };
     prisma.comedero.create.mockResolvedValue({ id: '1', ...data });
 
-    const result = await service.create(data as never);
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+      service.create(data as never),
+    );
 
-    expect(prisma.comedero.create).toHaveBeenCalledWith({ data });
+    expect(prisma.comedero.create).toHaveBeenCalledWith({ data: { ...data, organizacionId: 7 } });
     expect(result).toEqual({ id: '1', ...data });
   });
 

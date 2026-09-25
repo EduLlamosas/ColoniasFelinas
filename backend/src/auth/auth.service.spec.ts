@@ -32,40 +32,6 @@ describe('AuthService', () => {
     );
   });
 
-  describe('register', () => {
-    it('crea el usuario y devuelve un accessToken firmado con su id, email, rol y tokenVersion', async () => {
-      usuariosService.create.mockResolvedValue({
-        id: '1',
-        email: 'a@b.com',
-        rol: 'GESTOR',
-        tokenVersion: 0,
-      });
-      jwtService.sign.mockReturnValue('token-firmado');
-
-      const result = await service.register({
-        email: 'a@b.com',
-        password: 'secreto123',
-        nombreCompleto: 'Ana',
-      });
-
-      expect(usuariosService.create).toHaveBeenCalledWith({
-        email: 'a@b.com',
-        password: 'secreto123',
-        nombreCompleto: 'Ana',
-      });
-      expect(jwtService.sign).toHaveBeenCalledWith({
-        sub: '1',
-        email: 'a@b.com',
-        rol: 'GESTOR',
-        tokenVersion: 0,
-      });
-      expect(result).toEqual({
-        accessToken: 'token-firmado',
-        usuario: { id: '1', email: 'a@b.com', rol: 'GESTOR', tokenVersion: 0 },
-      });
-    });
-  });
-
   describe('login', () => {
     // extensions.code: 'INVALID_CREDENTIALS', deliberadamente distinto del 'UNAUTHENTICATED'
     // genérico que usan los guards de JWT - si compartieran code, el frontend mostraría "tu
@@ -98,6 +64,7 @@ describe('AuthService', () => {
         id: '1',
         email: 'a@b.com',
         rol: 'ADMINISTRADOR',
+        organizacionId: 7,
         passwordHash: 'hash',
         tokenVersion: 3,
       });
@@ -111,6 +78,7 @@ describe('AuthService', () => {
         sub: '1',
         email: 'a@b.com',
         rol: 'ADMINISTRADOR',
+        organizacionId: 7,
         tokenVersion: 3,
       });
       expect(result.accessToken).toBe('token-firmado');

@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { AsignacionesService } from './asignaciones.service.js';
+import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 function createPrismaMock() {
@@ -23,13 +24,17 @@ describe('AsignacionesService', () => {
     service = new AsignacionesService(prisma as unknown as PrismaService);
   });
 
-  it('create() delega en prisma.asignacionVoluntario.create', async () => {
+  it('create() delega en prisma.asignacionVoluntario.create, con el organizacionId de la sesión', async () => {
     const data = { voluntarioId: 1, coloniaId: 2, rolAsignado: 'SUPERVISOR' };
     prisma.asignacionVoluntario.create.mockResolvedValue(data);
 
-    const result = await service.create(data as never);
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+      service.create(data as never),
+    );
 
-    expect(prisma.asignacionVoluntario.create).toHaveBeenCalledWith({ data });
+    expect(prisma.asignacionVoluntario.create).toHaveBeenCalledWith({
+      data: { ...data, organizacionId: 7 },
+    });
     expect(result).toEqual(data);
   });
 

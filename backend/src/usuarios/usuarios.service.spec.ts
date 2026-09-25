@@ -26,7 +26,7 @@ describe('UsuariosService', () => {
     service = new UsuariosService(prisma as unknown as PrismaService);
   });
 
-  it('create() hashea la contraseña y fuerza el rol GESTOR, ignorando cualquier otro valor', async () => {
+  it('create() hashea la contraseña y guarda el rol y la organización tal cual se le pasan', async () => {
     vi.mocked(bcrypt.hash).mockResolvedValue('hash-simulado' as never);
     prisma.usuario.create.mockResolvedValue({ id: '1', email: 'a@b.com', rol: 'GESTOR' });
 
@@ -34,6 +34,8 @@ describe('UsuariosService', () => {
       email: 'a@b.com',
       password: 'secreto123',
       nombreCompleto: 'Ana',
+      rol: 'GESTOR',
+      organizacionId: 7,
     });
 
     expect(bcrypt.hash).toHaveBeenCalledWith('secreto123', 10);
@@ -43,6 +45,7 @@ describe('UsuariosService', () => {
         passwordHash: 'hash-simulado',
         nombreCompleto: 'Ana',
         rol: 'GESTOR',
+        organizacionId: 7,
       },
     });
     expect(result).toEqual({ id: '1', email: 'a@b.com', rol: 'GESTOR' });

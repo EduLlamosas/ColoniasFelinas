@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
+import { requireTenantId } from '../prisma/tenant-context.js';
 import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
 import { CreateGatoInput } from './dto/create-gato.input.js';
 import { UpdateGatoInput } from './dto/update-gato.input.js';
@@ -10,7 +11,9 @@ export class GatosService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(data: CreateGatoInput) {
-    return this.prisma.gato.create({ data }).catch(handlePrismaError);
+    return this.prisma.gato
+      .create({ data: { ...data, organizacionId: requireTenantId() } })
+      .catch(handlePrismaError);
   }
 
   findAll(coloniaId?: number) {

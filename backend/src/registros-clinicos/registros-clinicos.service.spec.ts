@@ -1,11 +1,18 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { RegistrosClinicosService } from './registros-clinicos.service.js';
+import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+
+const conOrganizacion = <T>(fn: () => T) =>
+  runWithTenantContext({ organizacionId: 3, isSuperadmin: false }, fn);
 
 function createPrismaMock() {
   const tx = {
     gato: { update: vi.fn() },
     registroClinico: { create: vi.fn() },
+    // runTenantTransaction (tenant-context.ts) hace SET LOCAL en tx antes de llamar a la propia
+    // transacción - solo se invoca de verdad si el test corre dentro de conOrganizacion().
+    $executeRawUnsafe: vi.fn(),
   };
   return {
     $transaction: vi.fn((callback: (transaction: typeof tx) => unknown) => callback(tx)),
@@ -36,7 +43,7 @@ describe('RegistrosClinicosService', () => {
     };
     prisma.tx.registroClinico.create.mockResolvedValue({ id: 1, ...data, usuarioId: 7 });
 
-    await service.create(data as never, 7);
+    await conOrganizacion(() => service.create(data as never, 7));
 
     expect(prisma.gato.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
@@ -53,6 +60,7 @@ describe('RegistrosClinicosService', () => {
         tipo: 'ESTERILIZACION',
         fecha: new Date('2026-01-01'),
         diagnostico: 'Sin incidencias',
+        organizacionId: 3,
       },
     });
   });
@@ -92,7 +100,7 @@ describe('RegistrosClinicosService', () => {
     };
     prisma.tx.registroClinico.create.mockResolvedValue({ id: 1 });
 
-    await expect(service.create(data as never, 7)).resolves.toBeDefined();
+    await expect(conOrganizacion(() => service.create(data as never, 7))).resolves.toBeDefined();
   });
 
   it('create() rechaza una fecha más de 5 años anterior al nacimiento estimado del gato', async () => {
@@ -120,7 +128,7 @@ describe('RegistrosClinicosService', () => {
     };
     prisma.tx.registroClinico.create.mockResolvedValue({ id: 1, ...data });
 
-    await service.create(data as never, 7);
+    await conOrganizacion(() => service.create(data as never, 7));
 
     expect(prisma.registroClinico.findUnique).toHaveBeenCalledWith({
       where: { idempotencyKey: 'clave-nueva' },
@@ -134,6 +142,7 @@ describe('RegistrosClinicosService', () => {
         fecha: new Date('2026-01-01'),
         diagnostico: 'x',
         idempotencyKey: 'clave-nueva',
+        organizacionId: 3,
       },
     });
   });

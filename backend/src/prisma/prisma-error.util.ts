@@ -12,6 +12,7 @@ const UNIQUE_COLUMN_LABELS: Record<string, string> = {
   dni: 'DNI',
   voluntario_id: 'voluntario',
   colonia_id: 'colonia',
+  slug: 'identificador (slug)',
 };
 
 export function handlePrismaError(error: unknown): never {

@@ -17,7 +17,13 @@ describe('UsuariosResolver', () => {
   it('me() busca al usuario por el sub del payload del JWT, no por el email', async () => {
     service.findById.mockResolvedValue({ id: 1, email: 'a@b.com' });
 
-    const result = await resolver.me({ sub: 1, email: 'a@b.com', rol: 'GESTOR', tokenVersion: 0 });
+    const result = await resolver.me({
+      sub: 1,
+      email: 'a@b.com',
+      rol: 'GESTOR',
+      organizacionId: 7,
+      tokenVersion: 0,
+    });
 
     expect(service.findById).toHaveBeenCalledWith(1);
     expect(result).toEqual({ id: 1, email: 'a@b.com' });

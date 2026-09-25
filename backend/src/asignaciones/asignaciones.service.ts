@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
+import { requireTenantId } from '../prisma/tenant-context.js';
 import { CreateAsignacionInput } from './dto/create-asignacion.input.js';
 import { UpdateAsignacionInput } from './dto/update-asignacion.input.js';
 
@@ -9,7 +10,9 @@ export class AsignacionesService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(data: CreateAsignacionInput) {
-    return this.prisma.asignacionVoluntario.create({ data }).catch(handlePrismaError);
+    return this.prisma.asignacionVoluntario
+      .create({ data: { ...data, organizacionId: requireTenantId() } })
+      .catch(handlePrismaError);
   }
 
   findAll(coloniaId?: number, voluntarioId?: number) {

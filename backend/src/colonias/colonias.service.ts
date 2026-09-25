@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
+import { requireTenantId } from '../prisma/tenant-context.js';
 import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
 import { CreateColoniaInput } from './dto/create-colonia.input.js';
 import { UpdateColoniaInput } from './dto/update-colonia.input.js';
@@ -10,7 +11,9 @@ export class ColoniasService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(data: CreateColoniaInput) {
-    return this.prisma.colonia.create({ data }).catch(handlePrismaError);
+    return this.prisma.colonia
+      .create({ data: { ...data, organizacionId: requireTenantId() } })
+      .catch(handlePrismaError);
   }
 
   findAll() {

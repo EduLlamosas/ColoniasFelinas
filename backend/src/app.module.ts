@@ -3,6 +3,7 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import depthLimit from 'graphql-depth-limit';
 import { AppController } from './app.controller.js';
@@ -16,6 +17,7 @@ import { AsignacionesModule } from './asignaciones/asignaciones.module.js';
 import { VisitasComederoModule } from './visitas-comedero/visitas-comedero.module.js';
 import { RegistrosClinicosModule } from './registros-clinicos/registros-clinicos.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
+import { OrganizacionesModule } from './organizaciones/organizaciones.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { EstadisticasModule } from './estadisticas/estadisticas.module.js';
@@ -24,6 +26,7 @@ import { formatGraphqlError } from './graphql/format-error.util.js';
 import { createQueryComplexityPlugin } from './graphql/query-complexity.plugin.js';
 import { createLoaders } from './graphql/dataloaders.js';
 import { PrismaService } from './prisma/prisma.service.js';
+import { TenantContextInterceptor } from './prisma/tenant-context.interceptor.js';
 
 // La query real más anidada del proyecto (registrosClinicos { usuario { ... } }) usa 3 niveles.
 // El margen hasta 8 cubre cualquier consulta legítima futura sin dejar via libre a un cliente
@@ -40,6 +43,11 @@ const MAX_QUERY_DEPTH = 8;
 // mucho antes de las cientos de llamadas que haría falta para un DoS real. Ver
 // query-complexity.plugin.ts para por qué esto es un plugin de Apollo y no una validationRule más.
 const MAX_QUERY_COMPLEXITY = 150;
+
+// BenchmarkModule es instrumentación del propio TFG (medir REST vs GraphQL) - no aporta nada a
+// un ayuntamiento cliente y no debe salir en un despliegue comercial. Apagado por defecto; se
+// enciende solo poniendo ENABLE_BENCHMARK_MODULE=true en el .env de desarrollo.
+const ENABLE_BENCHMARK_MODULE = process.env.ENABLE_BENCHMARK_MODULE === 'true';
 
 // Límite de fuerza bruta sobre login/register (AuthResolver, ver GqlThrottlerGuard): 5 intentos
 // por minuto y por IP. Generoso para un usuario real que se equivoca de contraseña un par de
@@ -91,12 +99,18 @@ const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
     VisitasComederoModule,
     RegistrosClinicosModule,
     UsuariosModule,
+    OrganizacionesModule,
     AuthModule,
     UploadsModule,
     EstadisticasModule,
-    BenchmarkModule,
+    ...(ENABLE_BENCHMARK_MODULE ? [BenchmarkModule] : []),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Global: fija el contexto de tenant (organizacionId del JWT) para CUALQUIER query/mutación
+    // autenticada, antes de que corra el resolver - ver tenant-context.interceptor.ts.
+    { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },
+  ],
 })
 export class AppModule {}

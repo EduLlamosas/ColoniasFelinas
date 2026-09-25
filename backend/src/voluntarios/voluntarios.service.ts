@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
+import { requireTenantId } from '../prisma/tenant-context.js';
 import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
 import { CreateVoluntarioInput } from './dto/create-voluntario.input.js';
 import { UpdateVoluntarioInput } from './dto/update-voluntario.input.js';
@@ -10,7 +11,9 @@ export class VoluntariosService {
   constructor(private readonly prisma: PrismaService) {}
 
   create(data: CreateVoluntarioInput) {
-    return this.prisma.voluntario.create({ data }).catch(handlePrismaError);
+    return this.prisma.voluntario
+      .create({ data: { ...data, organizacionId: requireTenantId() } })
+      .catch(handlePrismaError);
   }
 
   findAll() {

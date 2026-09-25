@@ -1,6 +1,7 @@
 import DataLoader from 'dataloader';
 import { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import { runTenantScopedRaw } from '../prisma/tenant-context.js';
 
 // Agrupa una lista de filas ya traídas de la base de datos en un Map<clave, filas[]> - el paso
 // común a todo loader "N colonias -> sus gatos/comederos/asignaciones" de más abajo, para no
@@ -89,26 +90,34 @@ export function createLoaders(prisma: PrismaService) {
     diagnostico: string;
     createdAt: Date;
   }
+
+  // SQL puro para mejorar la eficiencia de la operación al solo necesitar 3 registros (con Prisma
+  // los traeríamos todos). registros_clinicos lleva RLS (ver migración multi_tenant_organizaciones)
+  // - tenant.extension.ts NO intercepta $queryRaw (ver el comentario allí), así que aquí hay que
+  // envolver la consulta a mano con runTenantScopedRaw para que el SET LOCAL del organizacionId
+  // ambiente corra en la MISMA transacción que esta query, o RLS no dejaría pasar ninguna fila.
   const registrosClinicosPorGato = new DataLoader<number, unknown[]>(async (gatoIds) => {
-    const filas = await prisma.$queryRaw<RegistroClinicoReciente[]>`
-      WITH ranked AS (
-        SELECT
-          id,
-          gato_id AS "gatoId",
-          usuario_id AS "usuarioId",
-          tipo,
-          fecha,
-          diagnostico,
-          created_at AS "createdAt",
-          ROW_NUMBER() OVER (PARTITION BY gato_id ORDER BY fecha DESC) AS rn
-        FROM registros_clinicos
-        WHERE gato_id IN (${Prisma.join([...gatoIds])})
-      )
-      SELECT id, "gatoId", "usuarioId", tipo, fecha, diagnostico, "createdAt"
-      FROM ranked
-      WHERE rn <= ${MAX_REGISTROS_RECIENTES}
-      ORDER BY "gatoId", fecha DESC
-    `;
+    const filas = await runTenantScopedRaw(prisma, (tx) =>
+      tx.$queryRaw<RegistroClinicoReciente[]>`
+        WITH ranked AS (
+          SELECT
+            id,
+            gato_id AS "gatoId",
+            usuario_id AS "usuarioId",
+            tipo,
+            fecha,
+            diagnostico,
+            created_at AS "createdAt",
+            ROW_NUMBER() OVER (PARTITION BY gato_id ORDER BY fecha DESC) AS rn
+          FROM registros_clinicos
+          WHERE gato_id IN (${Prisma.join([...gatoIds])})
+        )
+        SELECT id, "gatoId", "usuarioId", tipo, fecha, diagnostico, "createdAt"
+        FROM ranked
+        WHERE rn <= ${MAX_REGISTROS_RECIENTES}
+        ORDER BY "gatoId", fecha DESC
+      `,
+    );
     const porGato = groupBy(filas, (registro) => registro.gatoId);
     return gatoIds.map((id) => porGato.get(id) ?? []);
   });

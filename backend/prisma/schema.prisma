@@ -39,12 +39,38 @@ enum TipoEventoClinico {
   TRATAMIENTO_ESPECIAL
 }
 
+// Entidad raíz del multi-tenant: un Ayuntamiento/cliente. Todo el resto de datos (usuarios,
+// colonias y lo que cuelga de ellas) pertenece a exactamente una Organizacion, aislado de las
+// demás por Row-Level Security en Postgres (ver la migración de introducción de este modelo para
+// las políticas concretas) - el filtrado NO depende de que cada resolver se acuerde de un `where`,
+// es la propia base de datos la que rechaza filas de otra organización.
+model Organizacion {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  slug      String   @unique @db.VarChar(80)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usuarios    Usuario[]
+  colonias    Colonia[]
+  voluntarios Voluntario[]
+
+  @@map("organizaciones")
+}
+
 model Usuario {
   id             Int        @id @default(autoincrement())
   email          String     @unique
   passwordHash   String     @map("password_hash")
   nombreCompleto String     @map("nombre_completo")
   rol            RolUsuario @default(GESTOR)
+  // NULL = superadmin (el operador del propio SaaS, no pertenece a ningún ayuntamiento - ver
+  // SuperadminGuard). Todo el resto de usuarios pertenece exactamente a una Organizacion. La
+  // política RLS de esta tabla usa app.is_superadmin, no este campo, para decidir si un superadmin
+  // ve las filas de todas las organizaciones.
+  organizacionId Int?          @map("organizacion_id")
+  organizacion   Organizacion? @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
   // Incluido en el payload del JWT al firmarlo y comprobado en JwtStrategy en cada petición: un
   // UPDATE que lo incremente ("token_version = token_version + 1") invalida de golpe todos los
   // tokens ya emitidos para este usuario (dispositivo perdido, token compartido por error...),
@@ -56,30 +82,38 @@ model Usuario {
   visitasComedero   VisitaComedero[]
   registrosClinicos RegistroClinico[]
 
+  @@index([organizacionId])
   @@map("usuarios")
 }
 
 model Colonia {
-  id            Int       @id @default(autoincrement())
-  codigoOficial String?   @unique @map("codigo_oficial")
-  nombre        String
-  tipoSuelo     TipoSuelo @map("tipo_suelo")
-  latitud       Float
-  longitud      Float
-  observaciones String?
-  fotoUrl       String?   @map("foto_url")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id             Int          @id @default(autoincrement())
+  organizacionId Int          @map("organizacion_id")
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  codigoOficial  String?      @unique @map("codigo_oficial")
+  nombre         String
+  tipoSuelo      TipoSuelo    @map("tipo_suelo")
+  latitud        Float
+  longitud       Float
+  observaciones  String?
+  fotoUrl        String?      @map("foto_url")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   comederos    Comedero[]
   gatos        Gato[]
   asignaciones AsignacionVoluntario[]
 
+  @@index([organizacionId])
   @@map("colonias")
 }
 
 model Comedero {
   id                 Int      @id @default(autoincrement())
+  // Copiado de Colonia.organizacionId en el momento de crear (no es una FK a Organizacion propia,
+  // es la misma denormalización que en el resto de tablas hijas) - así la política RLS de esta
+  // tabla filtra por una columna propia en vez de necesitar un JOIN contra colonias en cada fila.
+  organizacionId     Int      @map("organizacion_id")
   coloniaId          Int      @map("colonia_id")
   ubicacionDetallada String   @map("ubicacion_detallada")
   fotoUrl            String?  @map("foto_url")
@@ -90,11 +124,14 @@ model Comedero {
   visitas VisitaComedero[]
 
   @@index([coloniaId])
+  @@index([organizacionId])
   @@map("comederos")
 }
 
 model VisitaComedero {
-  id            Int      @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
+  // Copiado de Comedero.organizacionId al crear - mismo motivo que en Comedero (RLS sin JOIN).
+  organizacionId Int      @map("organizacion_id")
   comederoId    Int      @map("comedero_id")
   // Nullable a nivel de columna solo para no romper filas ya existentes al añadir el campo
   // (ALTER TABLE ADD COLUMN NOT NULL falla contra una tabla con datos sin un default). El
@@ -121,11 +158,14 @@ model VisitaComedero {
   // createdAt desc - con [comederoId, createdAt] Postgres puede devolver las filas ya en ese
   // orden directamente desde el índice, sin un paso de Sort aparte una vez filtradas.
   @@index([comederoId, createdAt])
+  @@index([organizacionId])
   @@map("visitas_comedero")
 }
 
 model Gato {
   id              Int       @id @default(autoincrement())
+  // Copiado de Colonia.organizacionId al crear - mismo motivo que en Comedero (RLS sin JOIN).
+  organizacionId  Int       @map("organizacion_id")
   coloniaId       Int       @map("colonia_id")
   nombre          String?
   sexo            Sexo
@@ -144,11 +184,14 @@ model Gato {
   registrosClinicos RegistroClinico[]
 
   @@index([coloniaId])
+  @@index([organizacionId])
   @@map("gatos")
 }
 
 model RegistroClinico {
-  id          Int               @id @default(autoincrement())
+  id             Int               @id @default(autoincrement())
+  // Copiado de Gato.organizacionId al crear - mismo motivo que en Comedero (RLS sin JOIN).
+  organizacionId Int               @map("organizacion_id")
   gatoId      Int               @map("gato_id")
   // Mismo motivo que en VisitaComedero.usuarioId: nullable en columna, siempre relleno en la
   // práctica porque el resolver lo saca del JWT, nunca del cliente.
@@ -168,25 +211,32 @@ model RegistroClinico {
   // Compuesto, mismo motivo que en VisitaComedero: findByGato() filtra por gatoId Y ordena por
   // fecha desc.
   @@index([gatoId, fecha])
+  @@index([organizacionId])
   @@map("registros_clinicos")
 }
 
 model Voluntario {
-  id             Int      @id @default(autoincrement())
-  dni            String   @unique
+  id             Int          @id @default(autoincrement())
+  organizacionId Int          @map("organizacion_id")
+  organizacion   Organizacion @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  dni            String       @unique
   nombre         String
   telefono       String?
-  urlCesionDatos String   @map("url_cesion_datos")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  urlCesionDatos String       @map("url_cesion_datos")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
   asignaciones AsignacionVoluntario[]
 
+  @@index([organizacionId])
   @@map("voluntarios")
 }
 
 model AsignacionVoluntario {
-  id           Int      @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
+  // Copiado de Colonia.organizacionId al crear (voluntario y colonia siempre son de la misma
+  // organización - lo comprueba el servicio, no la BD) - mismo motivo que en el resto: RLS sin JOIN.
+  organizacionId Int      @map("organizacion_id")
   voluntarioId Int      @map("voluntario_id")
   coloniaId    Int      @map("colonia_id")
   rolAsignado  String   @map("rol_asignado") @db.VarChar(100)
@@ -202,5 +252,6 @@ model AsignacionVoluntario {
   // cliente (que necesita una clave estable de un solo campo para normalizar) funcionen igual que
   // con cualquier otra entidad, sin el caso especial que tenían hasta ahora.
   @@unique([voluntarioId, coloniaId])
+  @@index([organizacionId])
   @@map("voluntarios_colonias")
 }

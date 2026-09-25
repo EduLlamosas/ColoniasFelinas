@@ -22,21 +22,21 @@ describe('JwtStrategy', () => {
 
   it('acepta el payload cuando tokenVersion coincide con la del usuario en BD', async () => {
     usuariosService.findById.mockResolvedValue({ id: 1, tokenVersion: 2 });
-    const payload = { sub: 1, email: 'a@b.com', rol: 'GESTOR' as const, tokenVersion: 2 };
+    const payload = { sub: 1, email: 'a@b.com', rol: 'GESTOR' as const, organizacionId: 7, tokenVersion: 2 };
 
     await expect(strategy.validate(payload)).resolves.toEqual(payload);
   });
 
   it('rechaza el payload si tokenVersion no coincide (sesión revocada tras un UPDATE)', async () => {
     usuariosService.findById.mockResolvedValue({ id: 1, tokenVersion: 3 });
-    const payload = { sub: 1, email: 'a@b.com', rol: 'GESTOR' as const, tokenVersion: 2 };
+    const payload = { sub: 1, email: 'a@b.com', rol: 'GESTOR' as const, organizacionId: 7, tokenVersion: 2 };
 
     await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
   });
 
   it('rechaza el payload si el usuario ya no existe (cuenta borrada)', async () => {
     usuariosService.findById.mockResolvedValue(null);
-    const payload = { sub: 999, email: 'fantasma@b.com', rol: 'GESTOR' as const, tokenVersion: 0 };
+    const payload = { sub: 999, email: 'fantasma@b.com', rol: 'GESTOR' as const, organizacionId: 7, tokenVersion: 0 };
 
     await expect(strategy.validate(payload)).rejects.toThrow(UnauthorizedException);
   });

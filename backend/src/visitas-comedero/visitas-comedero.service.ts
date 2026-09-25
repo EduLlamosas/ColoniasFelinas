@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
+import { requireTenantId } from '../prisma/tenant-context.js';
 import { CreateVisitaComederoInput } from './dto/create-visita-comedero.input.js';
 
 @Injectable()
@@ -23,7 +24,9 @@ export class VisitasComederoService {
     // solapados con la misma clave): el índice único de la BD es la protección real contra el
     // duplicado en sí, esto solo evita el caso común de devolver un 409 en vez de la fila ya
     // creada.
-    return this.prisma.visitaComedero.create({ data: { ...data, usuarioId } }).catch(handlePrismaError);
+    return this.prisma.visitaComedero
+      .create({ data: { ...data, usuarioId, organizacionId: requireTenantId() } })
+      .catch(handlePrismaError);
   }
 
   findByComedero(comederoId: number) {

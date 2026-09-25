@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
+import { requireTenantId, runTenantTransaction } from '../prisma/tenant-context.js';
 import { CreateRegistroClinicoInput } from './dto/create-registro-clinico.input.js';
 
 // fechaNacimiento de un gato callejero es, por naturaleza, una estimación a ojo (RF-B.1: "fecha
@@ -56,16 +57,24 @@ export class RegistrosClinicosService {
       }
     }
 
-    // Transacción atómica: el nuevo registro clínico y el cambio de estado_cer del gato
-    // se confirman o se descartan juntos.
-    return this.prisma
-      .$transaction(async (tx) => {
-        await tx.gato.update({ where: { id: gatoId }, data: { estadoCer: nuevoEstadoCer } });
-        return tx.registroClinico.create({
-          data: { gatoId, usuarioId, tipo, fecha: fechaIntervencion, diagnostico, idempotencyKey },
-        });
-      })
-      .catch(handlePrismaError);
+    // Transacción atómica: el nuevo registro clínico y el cambio de estado_cer del gato se
+    // confirman o se descartan juntos. runTenantTransaction (no this.prisma.$transaction a secas)
+    // porque esta tabla lleva RLS - ver tenant-context.ts para por qué hace falta ese envoltorio
+    // en vez del $transaction normal de Prisma.
+    return runTenantTransaction(this.prisma, async (tx) => {
+      await tx.gato.update({ where: { id: gatoId }, data: { estadoCer: nuevoEstadoCer } });
+      return tx.registroClinico.create({
+        data: {
+          gatoId,
+          usuarioId,
+          tipo,
+          fecha: fechaIntervencion,
+          diagnostico,
+          idempotencyKey,
+          organizacionId: requireTenantId(),
+        },
+      });
+    }).catch(handlePrismaError);
   }
 
   findByGato(gatoId: number) {

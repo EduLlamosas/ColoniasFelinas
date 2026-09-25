@@ -27,8 +27,34 @@ async function seedPhotoUrl(assetRelPath: string): Promise<string> {
 }
 
 async function main() {
+  // --- Organización piloto ---
+  // Esta conexión (DATABASE_URL, el rol "postgres") es superusuario de Postgres - se salta RLS
+  // sin más, sea cual sea la organización de los datos que toque. No hace falta ningún
+  // runAsSuperadmin/runWithTenantContext aquí (ese mecanismo es para la app en tiempo de
+  // ejecución, que se conecta con el rol restringido colonias_app - ver PrismaService).
+  const organizacion = await prisma.organizacion.upsert({
+    where: { slug: 'ayto-ejemplo' },
+    update: {},
+    create: { nombre: 'Ayuntamiento de Ejemplo', slug: 'ayto-ejemplo' },
+  });
+
   // --- Usuarios ---
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  // organizacionId: null - es EL superadmin del propio SaaS (ver Usuario.organizacionId), no
+  // pertenece a este ni a ningún otro ayuntamiento. Con este usuario se llama a
+  // OrganizacionesResolver#crearOrganizacion para dar de alta clientes reales.
+  const superadmin = await prisma.usuario.upsert({
+    where: { email: 'superadmin@coloniasfelinas.app' },
+    update: {},
+    create: {
+      email: 'superadmin@coloniasfelinas.app',
+      passwordHash,
+      nombreCompleto: 'Superadmin',
+      rol: 'ADMINISTRADOR',
+      organizacionId: null,
+    },
+  });
 
   const admin = await prisma.usuario.upsert({
     where: { email: 'admin@ayto-ejemplo.es' },
@@ -38,6 +64,7 @@ async function main() {
       passwordHash,
       nombreCompleto: 'María Ruiz',
       rol: 'ADMINISTRADOR',
+      organizacionId: organizacion.id,
     },
   });
 
@@ -49,6 +76,7 @@ async function main() {
       passwordHash,
       nombreCompleto: 'Javier Soler',
       rol: 'GESTOR',
+      organizacionId: organizacion.id,
     },
   });
 
@@ -76,6 +104,7 @@ async function main() {
 
   // --- Colonias ---
   const datosAlameda = {
+    organizacionId: organizacion.id,
     codigoOficial: 'COL-2024-001',
     nombre: 'Parque de la Alameda',
     tipoSuelo: 'URBANO',
@@ -91,6 +120,7 @@ async function main() {
   });
 
   const datosPoligono = {
+    organizacionId: organizacion.id,
     codigoOficial: 'COL-2024-002',
     nombre: 'Polígono Industrial Norte',
     tipoSuelo: 'INDUSTRIAL',
@@ -106,6 +136,7 @@ async function main() {
   });
 
   const datosOlivar = {
+    organizacionId: organizacion.id,
     codigoOficial: 'COL-2024-003',
     nombre: 'Finca El Olivar',
     tipoSuelo: 'RURAL',
@@ -121,6 +152,7 @@ async function main() {
   });
 
   const datosEstacion = {
+    organizacionId: organizacion.id,
     codigoOficial: 'COL-2024-004',
     nombre: 'Barrio de la Estación',
     tipoSuelo: 'URBANO',
@@ -136,7 +168,7 @@ async function main() {
   });
 
   // --- Comederos ---
-  for (const data of [
+  for (const raw of [
     {
       coloniaId: alameda.id,
       ubicacionDetallada: 'Junto al banco verde, entrada norte',
@@ -168,6 +200,7 @@ async function main() {
       fotoUrl: fotoColoniaEstacion,
     },
   ]) {
+    const data = { ...raw, organizacionId: organizacion.id };
     const existente = await prisma.comedero.findFirst({
       where: { coloniaId: data.coloniaId, ubicacionDetallada: data.ubicacionDetallada },
     });
@@ -179,7 +212,7 @@ async function main() {
   }
 
   // --- Gatos ---
-  for (const data of [
+  for (const raw of [
       {
         coloniaId: alameda.id,
         nombre: 'Grisáceo',
@@ -275,6 +308,7 @@ async function main() {
         fotoUrl: fotoGatoEstrella,
       },
     ] as const) {
+    const data = { ...raw, organizacionId: organizacion.id };
     const existente = await prisma.gato.findFirst({
       where: { coloniaId: data.coloniaId, nombre: data.nombre },
     });
@@ -290,6 +324,7 @@ async function main() {
     where: { dni: '11111111H' },
     update: {},
     create: {
+      organizacionId: organizacion.id,
       dni: '11111111H',
       nombre: 'Ana Torres',
       telefono: '600111222',
@@ -301,6 +336,7 @@ async function main() {
     where: { dni: '22222222J' },
     update: {},
     create: {
+      organizacionId: organizacion.id,
       dni: '22222222J',
       nombre: 'Luis Fernández',
       telefono: '600333444',
@@ -312,6 +348,7 @@ async function main() {
     where: { dni: '33333333K' },
     update: {},
     create: {
+      organizacionId: organizacion.id,
       dni: '33333333K',
       nombre: 'Carmen Vidal',
       telefono: null,
@@ -356,7 +393,7 @@ async function main() {
       prisma.asignacionVoluntario.upsert({
         where: { voluntarioId_coloniaId: { voluntarioId, coloniaId } },
         update: {},
-        create: { voluntarioId, coloniaId, rolAsignado },
+        create: { voluntarioId, coloniaId, rolAsignado, organizacionId: organizacion.id },
       }),
     ),
   );
@@ -369,7 +406,7 @@ async function main() {
     where: { coloniaId: olivar.id, ubicacionDetallada: 'Bajo el olivo grande, junto al muro' },
   });
 
-  for (const data of [
+  for (const raw of [
     {
       comederoId: comederoBanco.id,
       usuarioId: gestor.id,
@@ -398,6 +435,7 @@ async function main() {
       createdAt: new Date('2026-08-22T18:40:00Z'),
     },
   ] as const) {
+    const data = { ...raw, organizacionId: organizacion.id };
     const existente = await prisma.visitaComedero.findFirst({
       where: { comederoId: data.comederoId, createdAt: data.createdAt },
     });
@@ -417,7 +455,7 @@ async function main() {
     where: { coloniaId: estacion.id, nombre: 'Estrella' },
   });
 
-  for (const data of [
+  for (const raw of [
     {
       gatoId: gatoGrisaceo.id,
       usuarioId: admin.id,
@@ -440,6 +478,7 @@ async function main() {
       diagnostico: 'Pauta de vacunación previa a la adopción, sin reacciones adversas.',
     },
   ] as const) {
+    const data = { ...raw, organizacionId: organizacion.id };
     const existente = await prisma.registroClinico.findFirst({
       where: { gatoId: data.gatoId, tipo: data.tipo, fecha: data.fecha },
     });
@@ -449,6 +488,7 @@ async function main() {
   }
 
   console.log('Datos de prueba creados.');
+  console.log(`  Superadmin:    ${superadmin.email} / ${DEMO_PASSWORD}`);
   console.log(`  Administrador: ${admin.email} / ${DEMO_PASSWORD}`);
   console.log(`  Gestor:        ${gestor.email} / ${DEMO_PASSWORD}`);
   console.log(

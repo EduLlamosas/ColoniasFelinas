@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { VoluntariosService } from './voluntarios.service.js';
 import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
+import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 vi.mock('../uploads/uploaded-file.util.js', () => ({ deleteUploadedFile: vi.fn() }));
@@ -27,13 +28,15 @@ describe('VoluntariosService', () => {
     vi.mocked(deleteUploadedFile).mockClear();
   });
 
-  it('create() delega en prisma.voluntario.create', async () => {
+  it('create() delega en prisma.voluntario.create, con el organizacionId de la sesión', async () => {
     const data = { dni: '12345678Z', nombre: 'Ana' };
     prisma.voluntario.create.mockResolvedValue({ id: '1', ...data });
 
-    const result = await service.create(data as never);
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+      service.create(data as never),
+    );
 
-    expect(prisma.voluntario.create).toHaveBeenCalledWith({ data });
+    expect(prisma.voluntario.create).toHaveBeenCalledWith({ data: { ...data, organizacionId: 7 } });
     expect(result).toEqual({ id: '1', ...data });
   });
 
