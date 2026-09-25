@@ -68,7 +68,9 @@ describe('Uploads (integración real, e2e)', () => {
       .attach('file', original, { filename: 'foto.png', contentType: 'image/png' })
       .expect(201);
 
-    expect(subida.body.url).toMatch(/^http:\/\/localhost:3000\/uploads\/[\w-]+\.webp$/);
+    // org-<id>/fotos/<uuid>.webp: MediaService prefija la clave por organización (ver
+    // storage/media.service.ts), para poder inspeccionar/limpiar por tenant a mano si hiciera falta.
+    expect(subida.body.url).toMatch(/^http:\/\/localhost:3000\/uploads\/org-\d+\/fotos\/[\w-]+\.webp$/);
     const filename = subida.body.url.split('/uploads/')[1];
     archivosCreados.push(filename);
 

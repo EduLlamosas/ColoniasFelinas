@@ -33,6 +33,13 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/colonias_test?schema=public
+      # Rol restringido (colonias_app, sin privilegios de superusuario) creado por la migración
+      # multi_tenant_organizaciones - es la conexión que usa PrismaService EN TIEMPO DE EJECUCIÓN
+      # (ver src/prisma/prisma.service.ts) para que las políticas RLS se apliquen de verdad. Sin
+      # esta variable, PrismaService cae a DATABASE_URL (el superusuario "postgres"), que se salta
+      # RLS por completo - los tests e2e de aislamiento entre organizaciones fallarían en falso
+      # (verían filas de todos los tenants) sin que el código de la app tenga ningún fallo real.
+      APP_DATABASE_URL: postgresql://colonias_app:colonias_app_dev_password@localhost:5432/colonias_test?schema=public
       JWT_SECRET: test-secret-solo-para-tests-de-integracion
       JWT_EXPIRES_IN: "86400"
       APP_URL: http://localhost:3000

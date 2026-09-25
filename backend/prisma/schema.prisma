@@ -49,6 +49,11 @@ model Organizacion {
   nombre    String
   slug      String   @unique @db.VarChar(80)
   activo    Boolean  @default(true)
+  // En KB, no bytes: un Int (máx. ~2^31) se queda corto en bytes para una cuota de varios GB,
+  // pero en KB llega sin problema hasta el rango de los TB - de sobra para esta cuota. Lo
+  // mantiene uploads.controller.ts en cada subida/borrado (ver StorageService) - no es una suma
+  // recalculada bajo demanda contra el propio proveedor de almacenamiento.
+  storageKbUsados Int      @default(0) @map("storage_kb_usados")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

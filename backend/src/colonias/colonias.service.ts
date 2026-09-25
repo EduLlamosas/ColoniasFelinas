@@ -2,13 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { handlePrismaError } from '../prisma/prisma-error.util.js';
 import { requireTenantId } from '../prisma/tenant-context.js';
-import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
+import { MediaService } from '../storage/media.service.js';
 import { CreateColoniaInput } from './dto/create-colonia.input.js';
 import { UpdateColoniaInput } from './dto/update-colonia.input.js';
 
 @Injectable()
 export class ColoniasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly media: MediaService,
+  ) {}
 
   create(data: CreateColoniaInput) {
     return this.prisma.colonia
@@ -34,7 +37,7 @@ export class ColoniasService {
       .update({ where: { id: Number(id) }, data })
       .catch(handlePrismaError);
     if (data.fotoUrl !== undefined && data.fotoUrl !== previous.fotoUrl) {
-      await deleteUploadedFile(previous.fotoUrl);
+      await this.media.eliminar(previous.fotoUrl);
     }
     return updated;
   }
@@ -42,7 +45,7 @@ export class ColoniasService {
   async remove(id: string) {
     await this.findOne(id);
     const removed = await this.prisma.colonia.delete({ where: { id: Number(id) } }).catch(handlePrismaError);
-    await deleteUploadedFile(removed.fotoUrl);
+    await this.media.eliminar(removed.fotoUrl);
     return removed;
   }
 }

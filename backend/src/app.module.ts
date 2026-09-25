@@ -20,6 +20,7 @@ import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { OrganizacionesModule } from './organizaciones/organizaciones.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
+import { StorageModule } from './storage/storage.module.js';
 import { EstadisticasModule } from './estadisticas/estadisticas.module.js';
 import { BenchmarkModule } from './benchmark/benchmark.module.js';
 import { formatGraphqlError } from './graphql/format-error.util.js';
@@ -57,12 +58,12 @@ const ENABLE_BENCHMARK_MODULE = process.env.ENABLE_BENCHMARK_MODULE === 'true';
 const AUTH_RATE_LIMIT_TTL_MS = 60_000;
 const AUTH_RATE_LIMIT_MAX_ATTEMPTS = 5;
 
-// MIN_FREE_DISK_MB (uploads.controller.ts) protege frente a una foto individual grande, pero no
-// limita CUÁNTAS puede subir un mismo actor en total - un uso indebido y sostenido agotaría el
-// disco igual, solo que más despacio. 30 subidas/hora por usuario autenticado (ver
-// UploadsThrottlerGuard, que trackea por sub del JWT en vez de por IP) es de sobra para el
-// trabajo de campo real y aun así acota el abuso sostenido: a 8MB máx. por foto, son ~240MB/hora
-// como mucho por cuenta, no todo el disco en una tarde.
+// MAX_STORAGE_MB_POR_ORGANIZACION (media.service.ts) protege frente a que una organización agote
+// su cuota de fotos, pero no limita CUÁNTAS puede subir un mismo actor en poco tiempo - un uso
+// indebido y sostenido agotaría esa cuota igual, solo que más despacio. 30 subidas/hora por
+// usuario autenticado (ver UploadsThrottlerGuard, que trackea por sub del JWT en vez de por IP)
+// es de sobra para el trabajo de campo real y aun así acota el abuso sostenido: a 8MB máx. por
+// foto, son ~240MB/hora como mucho por cuenta.
 const UPLOADS_RATE_LIMIT_TTL_MS = 3_600_000;
 const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
 
@@ -101,6 +102,7 @@ const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
     UsuariosModule,
     OrganizacionesModule,
     AuthModule,
+    StorageModule,
     UploadsModule,
     EstadisticasModule,
     ...(ENABLE_BENCHMARK_MODULE ? [BenchmarkModule] : []),

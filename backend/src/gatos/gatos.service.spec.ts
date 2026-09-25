@@ -1,10 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { GatosService } from './gatos.service.js';
-import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
 import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-
-vi.mock('../uploads/uploaded-file.util.js', () => ({ deleteUploadedFile: vi.fn() }));
+import type { MediaService } from '../storage/media.service.js';
 
 function createPrismaMock() {
   return {
@@ -18,14 +16,19 @@ function createPrismaMock() {
   };
 }
 
+function createMediaMock() {
+  return { eliminar: vi.fn() };
+}
+
 describe('GatosService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
+  let media: ReturnType<typeof createMediaMock>;
   let service: GatosService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    service = new GatosService(prisma as unknown as PrismaService);
-    vi.mocked(deleteUploadedFile).mockClear();
+    media = createMediaMock();
+    service = new GatosService(prisma as unknown as PrismaService, media as unknown as MediaService);
   });
 
   it('create() delega en prisma.gato.create, con el organizacionId de la sesión', async () => {
@@ -85,7 +88,7 @@ describe('GatosService', () => {
 
     await service.update('1', { fotoUrl: 'http://x/uploads/nueva.webp' } as never);
 
-    expect(deleteUploadedFile).toHaveBeenCalledWith('http://x/uploads/vieja.webp');
+    expect(media.eliminar).toHaveBeenCalledWith('http://x/uploads/vieja.webp');
   });
 
   it('update() no borra nada si el campo fotoUrl ni se envía', async () => {
@@ -94,7 +97,7 @@ describe('GatosService', () => {
 
     await service.update('1', { nombre: 'Michi' } as never);
 
-    expect(deleteUploadedFile).not.toHaveBeenCalled();
+    expect(media.eliminar).not.toHaveBeenCalled();
   });
 
   it('remove() comprueba que existe antes de borrar', async () => {
@@ -117,6 +120,6 @@ describe('GatosService', () => {
 
     await service.remove('1');
 
-    expect(deleteUploadedFile).toHaveBeenCalledWith('http://x/uploads/borrada.webp');
+    expect(media.eliminar).toHaveBeenCalledWith('http://x/uploads/borrada.webp');
   });
 });

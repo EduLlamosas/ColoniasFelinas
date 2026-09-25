@@ -3,7 +3,10 @@ import * as bcrypt from 'bcrypt';
 import { copyFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UPLOADS_DIR } from '../src/uploads/uploaded-file.util.js';
+// El seed siempre escribe a disco local, incluso en un despliegue con OVH Object Storage
+// configurado (ver storage.module.ts) - es solo para tener fotos de demo en desarrollo, nunca se
+// ejecuta contra una organización real.
+import { UPLOADS_DIR } from '../src/storage/local-storage.service.js';
 
 const prisma = new PrismaClient();
 

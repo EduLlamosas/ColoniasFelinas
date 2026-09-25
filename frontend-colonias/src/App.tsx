@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./features/auth/AuthContext";
 import { RequireAuth } from "./features/auth/RequireAuth";
 import { LoginPage } from "./features/auth/LoginPage";
+import { LandingPage } from "./features/landing/LandingPage";
 import { AppLayout } from "./layout/AppLayout";
 import { ColoniasListPage } from "./features/colonias/ColoniasListPage";
 import { ColoniaDetailPage } from "./features/colonias/ColoniaDetailPage";
@@ -18,16 +19,18 @@ export default function App() {
 	return (
 		<AuthProvider>
 			<Routes>
+				<Route path="/" element={<LandingPage />} />
 				<Route path="/login" element={<LoginPage />} />
+				{/* Sin "path": ruta de layout que envuelve en auth sin añadir ningún segmento a la
+				URL - las rutas hijas de abajo siguen siendo /colonias, /gatos/:id, etc. tal cual
+				eran antes de que "/" pasara a ser la landing pública. */}
 				<Route
-					path="/"
 					element={
 						<RequireAuth>
 							<AppLayout />
 						</RequireAuth>
 					}
 				>
-					<Route index element={<Navigate to="/colonias" replace />} />
 					<Route path="colonias" element={<ColoniasListPage />} />
 					<Route path="colonias/:id" element={<ColoniaDetailPage />} />
 					<Route path="gatos" element={<GatosListPage />} />

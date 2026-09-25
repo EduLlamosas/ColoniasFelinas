@@ -20,8 +20,11 @@ export function configureApp(app: NestExpressApplication) {
   mkdirSync(uploadsDir, { recursive: true });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // Esta ruta estática solo sirve algo cuando el almacenamiento activo es el disco local (sin
+  // credenciales de OVH configuradas, ver storage.module.ts) - con OVH, las fotos se sirven
+  // directas desde el bucket y esta ruta se queda sin uso, pero no estorba dejarla.
   // Cada subida genera un nombre de fichero nuevo (UUID, ver uploads.controller.ts) y una
-  // edición borra el fichero viejo en vez de sobrescribirlo (ver deleteUploadedFile en los
+  // edición borra el fichero viejo en vez de sobrescribirlo (ver MediaService#eliminar en los
   // *.service.ts) - una URL de /uploads/ nunca cambia de contenido bajo el mismo nombre, así
   // que cachearla un año como "immutable" es seguro: el navegador ni siquiera revalida con un
   // 304, deja de pedir la miniatura al backend hasta que expire.

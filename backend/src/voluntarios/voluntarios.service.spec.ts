@@ -1,10 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { VoluntariosService } from './voluntarios.service.js';
-import { deleteUploadedFile } from '../uploads/uploaded-file.util.js';
 import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
-
-vi.mock('../uploads/uploaded-file.util.js', () => ({ deleteUploadedFile: vi.fn() }));
+import type { MediaService } from '../storage/media.service.js';
 
 function createPrismaMock() {
   return {
@@ -18,14 +16,19 @@ function createPrismaMock() {
   };
 }
 
+function createMediaMock() {
+  return { eliminar: vi.fn() };
+}
+
 describe('VoluntariosService', () => {
   let prisma: ReturnType<typeof createPrismaMock>;
+  let media: ReturnType<typeof createMediaMock>;
   let service: VoluntariosService;
 
   beforeEach(() => {
     prisma = createPrismaMock();
-    service = new VoluntariosService(prisma as unknown as PrismaService);
-    vi.mocked(deleteUploadedFile).mockClear();
+    media = createMediaMock();
+    service = new VoluntariosService(prisma as unknown as PrismaService, media as unknown as MediaService);
   });
 
   it('create() delega en prisma.voluntario.create, con el organizacionId de la sesión', async () => {
@@ -78,7 +81,7 @@ describe('VoluntariosService', () => {
 
     await service.update('1', { urlCesionDatos: 'http://x/uploads/nueva.webp' } as never);
 
-    expect(deleteUploadedFile).toHaveBeenCalledWith('http://x/uploads/vieja.webp');
+    expect(media.eliminar).toHaveBeenCalledWith('http://x/uploads/vieja.webp');
   });
 
   it('update() no borra nada si el campo urlCesionDatos ni se envía', async () => {
@@ -87,7 +90,7 @@ describe('VoluntariosService', () => {
 
     await service.update('1', { nombre: 'Nuevo' } as never);
 
-    expect(deleteUploadedFile).not.toHaveBeenCalled();
+    expect(media.eliminar).not.toHaveBeenCalled();
   });
 
   it('remove() comprueba que existe antes de borrar', async () => {
@@ -110,6 +113,6 @@ describe('VoluntariosService', () => {
 
     await service.remove('1');
 
-    expect(deleteUploadedFile).toHaveBeenCalledWith('http://x/uploads/borrada.webp');
+    expect(media.eliminar).toHaveBeenCalledWith('http://x/uploads/borrada.webp');
   });
 });
