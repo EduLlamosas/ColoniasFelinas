@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
+import { crearGestorDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const ME = `{ me { id email } }`;
@@ -31,7 +32,7 @@ describe('Revocación de sesión vía tokenVersion (e2e)', () => {
   };
 
   it('un UPDATE que incrementa token_version invalida de golpe un token ya emitido, sin esperar a que expire', async () => {
-    const { token, usuario } = await registerUserOrThrow(app, { email: 'revocacion-1@test.local' });
+    const { token, usuario } = await crearGestorDePrueba(app, prisma, { email: 'revocacion-1@test.local' });
 
     const antes = await graphql(ME, token).expect(200);
     expect(antes.body.errors).toBeUndefined();
@@ -39,25 +40,29 @@ describe('Revocación de sesión vía tokenVersion (e2e)', () => {
 
     // Simula el "dispositivo perdido": alguien con acceso a la BD revoca la sesión directamente,
     // sin pasar por ninguna mutación de la API (tal y como describe el propio hallazgo).
-    await prisma.usuario.update({
-      where: { id: Number(usuario.id) },
-      data: { tokenVersion: { increment: 1 } },
-    });
+    await runAsSuperadmin(() =>
+      prisma.usuario.update({
+        where: { id: Number(usuario.id) },
+        data: { tokenVersion: { increment: 1 } },
+      }),
+    );
 
     const despues = await graphql(ME, token).expect(200);
     expect(despues.body.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');
   });
 
   it('tras revocar, un login nuevo emite un token con la tokenVersion actualizada y ese sí funciona', async () => {
-    const { token: tokenViejo, usuario } = await registerUserOrThrow(app, {
+    const { token: tokenViejo, usuario } = await crearGestorDePrueba(app, prisma, {
       email: 'revocacion-2@test.local',
       password: 'password123',
     });
 
-    await prisma.usuario.update({
-      where: { id: Number(usuario.id) },
-      data: { tokenVersion: { increment: 1 } },
-    });
+    await runAsSuperadmin(() =>
+      prisma.usuario.update({
+        where: { id: Number(usuario.id) },
+        data: { tokenVersion: { increment: 1 } },
+      }),
+    );
 
     const conTokenViejo = await graphql(ME, tokenViejo).expect(200);
     expect(conTokenViejo.body.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');
@@ -79,9 +84,9 @@ describe('Revocación de sesión vía tokenVersion (e2e)', () => {
   });
 
   it('un token cuyo usuario ya no existe (cuenta borrada) también es UNAUTHENTICATED', async () => {
-    const { token, usuario } = await registerUserOrThrow(app, { email: 'revocacion-3@test.local' });
+    const { token, usuario } = await crearGestorDePrueba(app, prisma, { email: 'revocacion-3@test.local' });
 
-    await prisma.usuario.delete({ where: { id: Number(usuario.id) } });
+    await runAsSuperadmin(() => prisma.usuario.delete({ where: { id: Number(usuario.id) } }));
 
     const res = await graphql(ME, token).expect(200);
     expect(res.body.errors?.[0]?.extensions?.code).toBe('UNAUTHENTICATED');

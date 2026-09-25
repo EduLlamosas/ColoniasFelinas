@@ -24,8 +24,55 @@ export function getTenantContext(): TenantContext | undefined {
   return storage.getStore();
 }
 
+// Middleware global (ver configure-app.ts) - abre UNA zona de AsyncLocalStorage que cubre la
+// petición HTTP entera, desde antes de que exista ningún JWT validado hasta la última resolución
+// de campo anidado vía DataLoader. Hace falta a este nivel, no en un interceptor por-handler:
+// Apollo resuelve los campos anidados (colonia.gatos, registroClinico.usuario...) en una fase
+// POSTERIOR a que el resolver de nivel superior devuelva su propio valor - envolver solo esa
+// llamada (lo que hacía antes TenantContextInterceptor con runWithTenantContext) deja fuera esa
+// fase posterior, y el batch de un DataLoader pierde el contexto por completo.
+//
+// El store es el MISMO objeto durante toda la zona: TenantContextInterceptor no abre una zona
+// nueva, MUTA los campos de este objeto (ver setTenantContext) en cuanto sabe quién es el usuario
+// - así todo lo que lea el contexto más tarde en la misma petición (incluido el batch de un
+// DataLoader, que no se dispara hasta el siguiente tick) ve el valor ya actualizado.
+export function tenantContextMiddleware(_req: unknown, _res: unknown, next: () => void): void {
+  storage.run({ organizacionId: null, isSuperadmin: false }, next);
+}
+
+// Rellena el store YA ABIERTO por tenantContextMiddleware con el organizacionId real del JWT
+// validado (ver TenantContextInterceptor). Si no hay zona activa (código que corre fuera de una
+// petición HTTP real - no debería pasar en producción) no hace nada, en vez de crear una zona
+// nueva que nadie más vería.
+export function setTenantContext(context: TenantContext): void {
+  const store = storage.getStore();
+  if (!store) return;
+  store.organizacionId = context.organizacionId;
+  store.isSuperadmin = context.isSuperadmin;
+}
+
+// Las llamadas de modelo de Prisma (prisma.usuario.create(...), etc.) son perezosas: NO ejecutan
+// nada hasta que alguien hace `await`/`.then()` sobre ellas (es lo que permite agruparlas sin
+// ejecutar en un array pasado a $transaction([...])). storage.run(context, fn) solo mantiene el
+// contexto de AsyncLocalStorage activo mientras `fn` se ejecuta de forma SÍNCRONA - si `fn` se
+// limita a hacer `return prisma.modelo.create(...)` sin await, esa llamada todavía no ha
+// arrancado de verdad cuando `fn` termina y la zona se cierra; tenant.extension.ts no ve el
+// contexto hasta que quien llama por fuera hace `await` sobre el resultado, momento en el que ya
+// es demasiado tarde. "Despertar" el resultado con un .then() vacío, todavía dentro de storage.run,
+// fuerza a Prisma a arrancar la consulta de verdad mientras el contexto sigue activo - sin exigir
+// que cada sitio que llama a runWithTenantContext/runAsSuperadmin escriba `async () => await ...`.
+function kick<T>(result: T): T {
+  if (result && typeof (result as { then?: unknown }).then === 'function') {
+    (result as unknown as Promise<unknown>).then(
+      () => undefined,
+      () => undefined,
+    );
+  }
+  return result;
+}
+
 export function runWithTenantContext<T>(context: TenantContext, fn: () => T): T {
-  return storage.run(context, fn);
+  return storage.run(context, () => kick(fn()));
 }
 
 // Para el puñado de operaciones de sistema que, por diseño, se ejecutan ANTES de que exista
@@ -35,7 +82,7 @@ export function runWithTenantContext<T>(context: TenantContext, fn: () => T): T 
 // sitios del código de aplicación donde se usa esto - todo lo demás pasa por
 // TenantContextInterceptor con el organizacionId real del JWT.
 export function runAsSuperadmin<T>(fn: () => T): T {
-  return storage.run({ organizacionId: null, isSuperadmin: true }, fn);
+  return storage.run({ organizacionId: null, isSuperadmin: true }, () => kick(fn()));
 }
 
 // Usado por todo `create()` de entidad tenant-scoped (colonias, gatos, comederos...): el

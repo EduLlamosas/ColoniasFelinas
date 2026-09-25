@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
+import { crearGestorDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 // depthLimit (ver query-depth-limit.e2e-spec.ts) no frena esto: cientos de alias del mismo campo
@@ -35,7 +35,7 @@ describe('Límite de complejidad de query (e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerUserOrThrow(app));
+    ({ token } = await crearGestorDePrueba(app, prisma));
   });
 
   afterAll(async () => {

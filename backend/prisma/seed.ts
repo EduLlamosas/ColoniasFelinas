@@ -44,9 +44,14 @@ async function main() {
   // organizacionId: null - es EL superadmin del propio SaaS (ver Usuario.organizacionId), no
   // pertenece a este ni a ningún otro ayuntamiento. Con este usuario se llama a
   // OrganizacionesResolver#crearOrganizacion para dar de alta clientes reales.
+  // update NO va vacío a propósito, a diferencia del resto de upserts de este fichero que sí
+  // pueden dejarlo así: colonia/comedero/gato SÍ reasignan organizacionId en su `update` (para
+  // que reseedear converja), así que dejar el de usuario vacío desincroniza justo lo que hizo
+  // saltar este bug la primera vez - un admin ya existente de antes de la migración multi-tenant
+  // se quedaba en la organización vieja mientras sus colonias pasaban a la nueva.
   const superadmin = await prisma.usuario.upsert({
     where: { email: 'superadmin@coloniasfelinas.app' },
-    update: {},
+    update: { rol: 'ADMINISTRADOR', organizacionId: null },
     create: {
       email: 'superadmin@coloniasfelinas.app',
       passwordHash,
@@ -58,7 +63,7 @@ async function main() {
 
   const admin = await prisma.usuario.upsert({
     where: { email: 'admin@ayto-ejemplo.es' },
-    update: {},
+    update: { rol: 'ADMINISTRADOR', organizacionId: organizacion.id },
     create: {
       email: 'admin@ayto-ejemplo.es',
       passwordHash,
@@ -70,7 +75,7 @@ async function main() {
 
   const gestor = await prisma.usuario.upsert({
     where: { email: 'gestor@ayto-ejemplo.es' },
-    update: {},
+    update: { rol: 'GESTOR', organizacionId: organizacion.id },
     create: {
       email: 'gestor@ayto-ejemplo.es',
       passwordHash,
@@ -322,7 +327,7 @@ async function main() {
   // --- Voluntarios ---
   const ana = await prisma.voluntario.upsert({
     where: { dni: '11111111H' },
-    update: {},
+    update: { organizacionId: organizacion.id },
     create: {
       organizacionId: organizacion.id,
       dni: '11111111H',
@@ -334,7 +339,7 @@ async function main() {
 
   const luis = await prisma.voluntario.upsert({
     where: { dni: '22222222J' },
-    update: {},
+    update: { organizacionId: organizacion.id },
     create: {
       organizacionId: organizacion.id,
       dni: '22222222J',
@@ -346,7 +351,7 @@ async function main() {
 
   const carmen = await prisma.voluntario.upsert({
     where: { dni: '33333333K' },
-    update: {},
+    update: { organizacionId: organizacion.id },
     create: {
       organizacionId: organizacion.id,
       dni: '33333333K',

@@ -3,12 +3,19 @@ import { join } from 'node:path';
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { tenantContextMiddleware } from './prisma/tenant-context.js';
 
 // Todo lo que la app real necesita al arrancar, en un único sitio: tanto
 // main.ts como los tests e2e (que NUNCA pasan por main.ts, montan su propia
 // INestApplication directamente desde AppModule) llaman a esto, para que no
 // puedan quedar desincronizados entre sí.
 export function configureApp(app: NestExpressApplication) {
+  // Lo primero de todo: abre la zona de AsyncLocalStorage que TenantContextInterceptor rellena
+  // más tarde y que tenant.extension.ts lee en cada consulta - tiene que envolver la petición
+  // entera (incluida la resolución de campos anidados vía DataLoader, que ocurre después de que
+  // el resolver principal ya haya devuelto su valor), así que va antes que cualquier otra cosa.
+  app.use(tenantContextMiddleware);
+
   const uploadsDir = join(process.cwd(), 'uploads');
   mkdirSync(uploadsDir, { recursive: true });
 

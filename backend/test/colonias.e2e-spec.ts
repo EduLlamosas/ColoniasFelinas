@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerAdminOrThrow } from './utils/register-admin.js';
+import { crearAdminDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_COLONIA = `
@@ -60,7 +61,7 @@ describe('Colonias (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerAdminOrThrow(app, prisma));
+    ({ token } = await crearAdminDePrueba(app, prisma));
   });
 
   afterAll(async () => {
@@ -95,8 +96,11 @@ describe('Colonias (integración real, e2e)', () => {
     expect(res.body.errors).toBeUndefined();
     coloniaId = res.body.data.createColonia.id;
 
-    // Verificación directa contra la base de datos, sin pasar por GraphQL:
-    const enBaseDeDatos = await prisma.colonia.findUnique({ where: { id: Number(coloniaId) } });
+    // Verificación directa contra la base de datos, sin pasar por GraphQL (RLS exige un contexto
+    // de tenant en cualquier lectura - runAsSuperadmin es el mismo bypass que usa seed.ts).
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.colonia.findUnique({ where: { id: Number(coloniaId) } }),
+    );
     expect(enBaseDeDatos?.codigoOficial).toBe('E2E-COL-1');
   });
 
@@ -118,9 +122,9 @@ describe('Colonias (integración real, e2e)', () => {
     expect(res.body.errors).toBeUndefined();
     expect(res.body.data.createColonia.codigoOficial).toBeNull();
 
-    const enBaseDeDatos = await prisma.colonia.findUnique({
-      where: { id: Number(res.body.data.createColonia.id) },
-    });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.colonia.findUnique({ where: { id: Number(res.body.data.createColonia.id) } }),
+    );
     expect(enBaseDeDatos?.codigoOficial).toBeNull();
   });
 
@@ -137,7 +141,9 @@ describe('Colonias (integración real, e2e)', () => {
       .expect(200);
 
     expect(res.body.data.updateColonia.nombre).toBe('Renombrada');
-    const enBaseDeDatos = await prisma.colonia.findUnique({ where: { id: Number(coloniaId) } });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.colonia.findUnique({ where: { id: Number(coloniaId) } }),
+    );
     expect(enBaseDeDatos?.nombre).toBe('Renombrada');
   });
 
@@ -155,7 +161,9 @@ describe('Colonias (integración real, e2e)', () => {
 
     expect(intentoBorrado.body.errors).toBeDefined();
     // La colonia sigue existiendo de verdad en Postgres:
-    expect(await prisma.colonia.findUnique({ where: { id: Number(coloniaId) } })).not.toBeNull();
+    expect(
+      await runAsSuperadmin(() => prisma.colonia.findUnique({ where: { id: Number(coloniaId) } })),
+    ).not.toBeNull();
 
     // Quitamos el gato y ahora sí debe dejar borrar la colonia:
     await graphql(REMOVE_GATO, { id: gatoId }).set('Authorization', `Bearer ${token}`).expect(200);
@@ -164,7 +172,9 @@ describe('Colonias (integración real, e2e)', () => {
       .expect(200);
 
     expect(borradoFinal.body.errors).toBeUndefined();
-    expect(await prisma.colonia.findUnique({ where: { id: Number(coloniaId) } })).toBeNull();
+    expect(
+      await runAsSuperadmin(() => prisma.colonia.findUnique({ where: { id: Number(coloniaId) } })),
+    ).toBeNull();
   });
 
   // Contra Postgres de verdad, no mockeado: el recorte a "las 3 más recientes" de

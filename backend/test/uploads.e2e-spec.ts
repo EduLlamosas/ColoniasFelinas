@@ -5,7 +5,7 @@ import request from 'supertest';
 import sharp from 'sharp';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
+import { crearGestorDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 describe('Uploads (integración real, e2e)', () => {
@@ -17,7 +17,7 @@ describe('Uploads (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerUserOrThrow(app));
+    ({ token } = await crearGestorDePrueba(app, prisma));
   });
 
   afterAll(async () => {
@@ -92,7 +92,7 @@ describe('Uploads (integración real, e2e)', () => {
     async () => {
       // Usuario propio, no el `token` del resto del fichero: así el cupo de este test empieza
       // vacío de verdad, sin depender de cuántas subidas hayan hecho ya los tests anteriores.
-      const { token: tokenPropio } = await registerUserOrThrow(app, {
+      const { token: tokenPropio } = await crearGestorDePrueba(app, prisma, {
         email: 'uploads-rate-limit@test.local',
       });
       const imagenPequena = await sharp({

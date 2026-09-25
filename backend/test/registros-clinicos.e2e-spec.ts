@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
+import { crearGestorDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const REGISTRAR_INTERVENCION = `
@@ -26,31 +27,37 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
   let prisma: PrismaService;
   let token: string;
   let usuarioId: number;
+  let organizacionId: number;
   let gatoId: number;
 
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    const registro = await registerUserOrThrow(app);
+    const registro = await crearGestorDePrueba(app, prisma);
     token = registro.token;
     usuarioId = Number(registro.usuario.id);
+    organizacionId = registro.organizacionId;
 
-    const colonia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-CLINICO-COL',
-        nombre: 'Colonia para historial clínico',
-        tipoSuelo: 'RURAL',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
-    const gato = await prisma.gato.create({
-      data: {
-        coloniaId: colonia.id,
-        sexo: 'MACHO',
-        capaPelaje: 'Atigrado',
-        estadoCer: 'CAPTURADO',
-      },
+    const gato = await runAsSuperadmin(async () => {
+      const colonia = await prisma.colonia.create({
+        data: {
+          organizacionId,
+          codigoOficial: 'E2E-CLINICO-COL',
+          nombre: 'Colonia para historial clínico',
+          tipoSuelo: 'RURAL',
+          latitud: 1,
+          longitud: 1,
+        },
+      });
+      return prisma.gato.create({
+        data: {
+          organizacionId,
+          coloniaId: colonia.id,
+          sexo: 'MACHO',
+          capaPelaje: 'Atigrado',
+          estadoCer: 'CAPTURADO',
+        },
+      });
     });
     gatoId = gato.id;
   });
@@ -83,12 +90,14 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
     expect(res.body.data.registrarIntervencionMedica.usuarioId).toBe(usuarioId);
     expect(res.body.data.registrarIntervencionMedica.usuario.id).toBe(String(usuarioId));
 
-    const gatoEnBaseDeDatos = await prisma.gato.findUnique({ where: { id: gatoId } });
+    const gatoEnBaseDeDatos = await runAsSuperadmin(() => prisma.gato.findUnique({ where: { id: gatoId } }));
     expect(gatoEnBaseDeDatos?.estadoCer).toBe('ESTERILIZADO');
 
-    const registroEnBaseDeDatos = await prisma.registroClinico.findUnique({
-      where: { id: Number(res.body.data.registrarIntervencionMedica.id) },
-    });
+    const registroEnBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.registroClinico.findUnique({
+        where: { id: Number(res.body.data.registrarIntervencionMedica.id) },
+      }),
+    );
     expect(registroEnBaseDeDatos?.diagnostico).toBe('Intervención sin incidencias');
     expect(registroEnBaseDeDatos?.usuarioId).toBe(usuarioId);
   });
@@ -114,29 +123,35 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
       .expect(200);
 
     expect(res.body.errors).toBeDefined();
-    const registros = await prisma.registroClinico.findMany({ where: { gatoId: 999999 } });
+    const registros = await runAsSuperadmin(() =>
+      prisma.registroClinico.findMany({ where: { gatoId: 999999 } }),
+    );
     expect(registros).toHaveLength(0);
   });
 
   it('dos intervenciones concurrentes sobre el mismo gato no se pisan ni corrompen el estado_cer', async () => {
     // Gato propio, no el `gatoId` compartido del resto del fichero: así esta prueba no
     // interfiere con el conteo de "registrosClinicos devuelve el historial del gato" de arriba.
-    const coloniaConcurrencia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-CLINICO-CONCURRENCIA',
-        nombre: 'Colonia para concurrencia',
-        tipoSuelo: 'URBANO',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
-    const gatoConcurrencia = await prisma.gato.create({
-      data: {
-        coloniaId: coloniaConcurrencia.id,
-        sexo: 'HEMBRA',
-        capaPelaje: 'Blanco',
-        estadoCer: 'CAPTURADO',
-      },
+    const gatoConcurrencia = await runAsSuperadmin(async () => {
+      const coloniaConcurrencia = await prisma.colonia.create({
+        data: {
+          organizacionId,
+          codigoOficial: 'E2E-CLINICO-CONCURRENCIA',
+          nombre: 'Colonia para concurrencia',
+          tipoSuelo: 'URBANO',
+          latitud: 1,
+          longitud: 1,
+        },
+      });
+      return prisma.gato.create({
+        data: {
+          organizacionId,
+          coloniaId: coloniaConcurrencia.id,
+          sexo: 'HEMBRA',
+          capaPelaje: 'Blanco',
+          estadoCer: 'CAPTURADO',
+        },
+      });
     });
 
     // Dos peticiones DE VERDAD en paralelo (no una tras otra) contra el mismo gatoId, cada una
@@ -169,9 +184,9 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
     expect(resB.body.errors).toBeUndefined();
 
     // Los dos registros clínicos existen: ninguna escritura se pisó a la otra.
-    const registros = await prisma.registroClinico.findMany({
-      where: { gatoId: gatoConcurrencia.id },
-    });
+    const registros = await runAsSuperadmin(() =>
+      prisma.registroClinico.findMany({ where: { gatoId: gatoConcurrencia.id } }),
+    );
     expect(registros).toHaveLength(2);
     expect(registros.map((r) => r.diagnostico).sort()).toEqual([
       'Intervención concurrente A',
@@ -180,27 +195,33 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
 
     // El estado final es el de UNA de las dos transacciones (la que Postgres dejó ir en
     // segundo lugar) - nunca un tercer valor corrupto, nunca el estado previo a ambas.
-    const gatoFinal = await prisma.gato.findUnique({ where: { id: gatoConcurrencia.id } });
+    const gatoFinal = await runAsSuperadmin(() =>
+      prisma.gato.findUnique({ where: { id: gatoConcurrencia.id } }),
+    );
     expect(['ESTERILIZADO', 'ADOPTADO']).toContain(gatoFinal?.estadoCer);
   });
 
   it('dos registros con la misma idempotencyKey crean un solo registro clínico y no vuelven a tocar estado_cer', async () => {
-    const coloniaIdempotencia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-CLINICO-IDEMPOTENCIA',
-        nombre: 'Colonia para idempotencia',
-        tipoSuelo: 'URBANO',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
-    const gatoIdempotencia = await prisma.gato.create({
-      data: {
-        coloniaId: coloniaIdempotencia.id,
-        sexo: 'MACHO',
-        capaPelaje: 'Negro',
-        estadoCer: 'CAPTURADO',
-      },
+    const gatoIdempotencia = await runAsSuperadmin(async () => {
+      const coloniaIdempotencia = await prisma.colonia.create({
+        data: {
+          organizacionId,
+          codigoOficial: 'E2E-CLINICO-IDEMPOTENCIA',
+          nombre: 'Colonia para idempotencia',
+          tipoSuelo: 'URBANO',
+          latitud: 1,
+          longitud: 1,
+        },
+      });
+      return prisma.gato.create({
+        data: {
+          organizacionId,
+          coloniaId: coloniaIdempotencia.id,
+          sexo: 'MACHO',
+          capaPelaje: 'Negro',
+          estadoCer: 'CAPTURADO',
+        },
+      });
     });
 
     const variables = {
@@ -221,7 +242,9 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
 
     // Entre el envío original y el reintento, otra intervención real (desde otro dispositivo,
     // por ejemplo) cambia el estado del gato - el reintento de la primera NO debe pisarlo.
-    await prisma.gato.update({ where: { id: gatoIdempotencia.id }, data: { estadoCer: 'ADOPTADO' } });
+    await runAsSuperadmin(() =>
+      prisma.gato.update({ where: { id: gatoIdempotencia.id }, data: { estadoCer: 'ADOPTADO' } }),
+    );
 
     // Simula el reintento automático de la cola offline del móvil: misma clave, misma petición.
     const segunda = await graphql(REGISTRAR_INTERVENCION, variables)
@@ -230,15 +253,21 @@ describe('RegistrosClinicos (integración real, e2e)', () => {
     expect(segunda.body.errors).toBeUndefined();
     expect(segunda.body.data.registrarIntervencionMedica.id).toBe(primera.body.data.registrarIntervencionMedica.id);
 
-    const registros = await prisma.registroClinico.findMany({ where: { gatoId: gatoIdempotencia.id } });
+    const registros = await runAsSuperadmin(() =>
+      prisma.registroClinico.findMany({ where: { gatoId: gatoIdempotencia.id } }),
+    );
     expect(registros).toHaveLength(1);
 
-    const gatoFinal = await prisma.gato.findUnique({ where: { id: gatoIdempotencia.id } });
+    const gatoFinal = await runAsSuperadmin(() =>
+      prisma.gato.findUnique({ where: { id: gatoIdempotencia.id } }),
+    );
     expect(gatoFinal?.estadoCer).toBe('ADOPTADO');
   });
 
   it('ON DELETE CASCADE: borrar el gato borra también su historial clínico', async () => {
-    await prisma.gato.delete({ where: { id: gatoId } });
-    expect(await prisma.registroClinico.findMany({ where: { gatoId } })).toHaveLength(0);
+    await runAsSuperadmin(() => prisma.gato.delete({ where: { id: gatoId } }));
+    expect(
+      await runAsSuperadmin(() => prisma.registroClinico.findMany({ where: { gatoId } })),
+    ).toHaveLength(0);
   });
 });

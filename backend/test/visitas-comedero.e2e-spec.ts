@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
+import { crearGestorDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const REGISTRAR_VISITA = `
@@ -32,26 +33,31 @@ describe('VisitasComedero (integración real, e2e)', () => {
   let prisma: PrismaService;
   let token: string;
   let usuarioId: number;
+  let organizacionId: number;
   let comederoId: number;
 
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    const registro = await registerUserOrThrow(app);
+    const registro = await crearGestorDePrueba(app, prisma);
     token = registro.token;
     usuarioId = Number(registro.usuario.id);
+    organizacionId = registro.organizacionId;
 
-    const colonia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-VISITA-COL',
-        nombre: 'Colonia para visitas',
-        tipoSuelo: 'URBANO',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
-    const comedero = await prisma.comedero.create({
-      data: { coloniaId: colonia.id, ubicacionDetallada: 'Junto al banco' },
+    const comedero = await runAsSuperadmin(async () => {
+      const colonia = await prisma.colonia.create({
+        data: {
+          organizacionId,
+          codigoOficial: 'E2E-VISITA-COL',
+          nombre: 'Colonia para visitas',
+          tipoSuelo: 'URBANO',
+          latitud: 1,
+          longitud: 1,
+        },
+      });
+      return prisma.comedero.create({
+        data: { organizacionId, coloniaId: colonia.id, ubicacionDetallada: 'Junto al banco' },
+      });
     });
     comederoId = comedero.id;
   });
@@ -86,9 +92,11 @@ describe('VisitasComedero (integración real, e2e)', () => {
     expect(res.body.data.registrarVisitaComedero.usuarioId).toBe(usuarioId);
     expect(res.body.data.registrarVisitaComedero.usuario.id).toBe(String(usuarioId));
 
-    const enBaseDeDatos = await prisma.visitaComedero.findUnique({
-      where: { id: Number(res.body.data.registrarVisitaComedero.id) },
-    });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.visitaComedero.findUnique({
+        where: { id: Number(res.body.data.registrarVisitaComedero.id) },
+      }),
+    );
     expect(enBaseDeDatos?.observaciones).toBe('Comedero sucio');
     expect(enBaseDeDatos?.usuarioId).toBe(usuarioId);
   });
@@ -110,17 +118,20 @@ describe('VisitasComedero (integración real, e2e)', () => {
   it('dos registros con la misma idempotencyKey crean una sola visita (reintento de la cola offline del móvil)', async () => {
     // Comedero propio, no el `comederoId` compartido del resto del fichero: así no interfiere
     // con el conteo de "visitasComedero devuelve la traza registrada" de arriba.
-    const coloniaIdempotencia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-VISITA-IDEMPOTENCIA',
-        nombre: 'Colonia para idempotencia',
-        tipoSuelo: 'RURAL',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
-    const comederoIdempotencia = await prisma.comedero.create({
-      data: { coloniaId: coloniaIdempotencia.id, ubicacionDetallada: 'Comedero idempotencia' },
+    const comederoIdempotencia = await runAsSuperadmin(async () => {
+      const coloniaIdempotencia = await prisma.colonia.create({
+        data: {
+          organizacionId,
+          codigoOficial: 'E2E-VISITA-IDEMPOTENCIA',
+          nombre: 'Colonia para idempotencia',
+          tipoSuelo: 'RURAL',
+          latitud: 1,
+          longitud: 1,
+        },
+      });
+      return prisma.comedero.create({
+        data: { organizacionId, coloniaId: coloniaIdempotencia.id, ubicacionDetallada: 'Comedero idempotencia' },
+      });
     });
 
     const variables = {
@@ -139,12 +150,16 @@ describe('VisitasComedero (integración real, e2e)', () => {
     expect(segunda.body.errors).toBeUndefined();
     expect(segunda.body.data.registrarVisitaComedero.id).toBe(primera.body.data.registrarVisitaComedero.id);
 
-    const visitas = await prisma.visitaComedero.findMany({ where: { comederoId: comederoIdempotencia.id } });
+    const visitas = await runAsSuperadmin(() =>
+      prisma.visitaComedero.findMany({ where: { comederoId: comederoIdempotencia.id } }),
+    );
     expect(visitas).toHaveLength(1);
   });
 
   it('ON DELETE CASCADE: borrar el comedero borra también sus visitas', async () => {
-    await prisma.comedero.delete({ where: { id: comederoId } });
-    expect(await prisma.visitaComedero.findMany({ where: { comederoId } })).toHaveLength(0);
+    await runAsSuperadmin(() => prisma.comedero.delete({ where: { id: comederoId } }));
+    expect(
+      await runAsSuperadmin(() => prisma.visitaComedero.findMany({ where: { comederoId } })),
+    ).toHaveLength(0);
   });
 });

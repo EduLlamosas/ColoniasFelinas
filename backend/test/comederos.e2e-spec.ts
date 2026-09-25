@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerAdminOrThrow } from './utils/register-admin.js';
+import { crearAdminDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_COMEDERO = `
@@ -34,17 +35,21 @@ describe('Comederos (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerAdminOrThrow(app, prisma));
+    const admin = await crearAdminDePrueba(app, prisma);
+    token = admin.token;
 
-    const colonia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-COM-COL',
-        nombre: 'Colonia para comederos',
-        tipoSuelo: 'RURAL',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
+    const colonia = await runAsSuperadmin(() =>
+      prisma.colonia.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          codigoOficial: 'E2E-COM-COL',
+          nombre: 'Colonia para comederos',
+          tipoSuelo: 'RURAL',
+          latitud: 1,
+          longitud: 1,
+        },
+      }),
+    );
     coloniaId = colonia.id;
   });
 
@@ -83,7 +88,9 @@ describe('Comederos (integración real, e2e)', () => {
       .expect(200);
 
     comederoId = res.body.data.createComedero.id;
-    const enBaseDeDatos = await prisma.comedero.findUnique({ where: { id: Number(comederoId) } });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.comedero.findUnique({ where: { id: Number(comederoId) } }),
+    );
     expect(enBaseDeDatos?.coloniaId).toBe(coloniaId);
   });
 
@@ -110,6 +117,8 @@ describe('Comederos (integración real, e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(await prisma.comedero.findUnique({ where: { id: Number(comederoId) } })).toBeNull();
+    expect(
+      await runAsSuperadmin(() => prisma.comedero.findUnique({ where: { id: Number(comederoId) } })),
+    ).toBeNull();
   });
 });

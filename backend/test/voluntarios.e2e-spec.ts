@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerAdminOrThrow } from './utils/register-admin.js';
+import { crearAdminDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_VOLUNTARIO = `
@@ -31,7 +32,7 @@ describe('Voluntarios (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerAdminOrThrow(app, prisma));
+    ({ token } = await crearAdminDePrueba(app, prisma));
   });
 
   afterAll(async () => {
@@ -72,7 +73,9 @@ describe('Voluntarios (integración real, e2e)', () => {
 
     expect(res.body.errors).toBeUndefined();
     voluntarioId = res.body.data.createVoluntario.id;
-    expect(await prisma.voluntario.findUnique({ where: { id: Number(voluntarioId) } })).not.toBeNull();
+    expect(
+      await runAsSuperadmin(() => prisma.voluntario.findUnique({ where: { id: Number(voluntarioId) } })),
+    ).not.toBeNull();
   });
 
   it('un DNI duplicado lo rechaza como conflicto real (P2002)', async () => {
@@ -104,6 +107,8 @@ describe('Voluntarios (integración real, e2e)', () => {
     await graphql(REMOVE_VOLUNTARIO, { id: voluntarioId })
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(await prisma.voluntario.findUnique({ where: { id: Number(voluntarioId) } })).toBeNull();
+    expect(
+      await runAsSuperadmin(() => prisma.voluntario.findUnique({ where: { id: Number(voluntarioId) } })),
+    ).toBeNull();
   });
 });

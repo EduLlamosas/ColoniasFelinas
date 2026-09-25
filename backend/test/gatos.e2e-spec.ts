@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerAdminOrThrow } from './utils/register-admin.js';
+import { crearAdminDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_GATO = `
@@ -32,17 +33,21 @@ describe('Gatos (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerAdminOrThrow(app, prisma));
+    const admin = await crearAdminDePrueba(app, prisma);
+    token = admin.token;
 
-    const colonia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-GATO-COL',
-        nombre: 'Colonia para gatos',
-        tipoSuelo: 'INDUSTRIAL',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
+    const colonia = await runAsSuperadmin(() =>
+      prisma.colonia.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          codigoOficial: 'E2E-GATO-COL',
+          nombre: 'Colonia para gatos',
+          tipoSuelo: 'INDUSTRIAL',
+          latitud: 1,
+          longitud: 1,
+        },
+      }),
+    );
     coloniaId = colonia.id;
   });
 
@@ -74,7 +79,9 @@ describe('Gatos (integración real, e2e)', () => {
     expect(res.body.data.createGato.sexo).toBe('HEMBRA');
     expect(res.body.data.createGato.estadoCer).toBe('ESTERILIZADO');
 
-    const enBaseDeDatos = await prisma.gato.findUnique({ where: { id: Number(gatoId) } });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.gato.findUnique({ where: { id: Number(gatoId) } }),
+    );
     expect(enBaseDeDatos?.sexo).toBe('HEMBRA');
   });
 
@@ -100,12 +107,14 @@ describe('Gatos (integración real, e2e)', () => {
       .expect(200);
 
     expect(res.body.data.updateGato.estadoCer).toBe('ADOPTADO');
-    const enBaseDeDatos = await prisma.gato.findUnique({ where: { id: Number(gatoId) } });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.gato.findUnique({ where: { id: Number(gatoId) } }),
+    );
     expect(enBaseDeDatos?.estadoCer).toBe('ADOPTADO');
   });
 
   it('removeGato lo borra de verdad', async () => {
     await graphql(REMOVE_GATO, { id: gatoId }).set('Authorization', `Bearer ${token}`).expect(200);
-    expect(await prisma.gato.findUnique({ where: { id: Number(gatoId) } })).toBeNull();
+    expect(await runAsSuperadmin(() => prisma.gato.findUnique({ where: { id: Number(gatoId) } }))).toBeNull();
   });
 });

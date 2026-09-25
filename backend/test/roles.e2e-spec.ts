@@ -1,9 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerUserOrThrow } from './utils/register-user.js';
-import { registerAdminOrThrow } from './utils/register-admin.js';
+import { crearAdminDePrueba, crearGestorDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 // Alta/edición/borrado de datos maestros (Colonia, Comedero, Gato, Voluntario, Asignacion)
@@ -25,43 +25,66 @@ describe('Restricción de roles en mutaciones (e2e)', () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
 
-    ({ token: gestorToken } = await registerUserOrThrow(app, { email: 'roles-gestor@test.local' }));
-    ({ token: adminToken } = await registerAdminOrThrow(app, prisma, { email: 'roles-admin@test.local' }));
+    // GESTOR y ADMINISTRADOR de la MISMA organización a propósito: este fichero comprueba que un
+    // GESTOR no puede editar los datos maestros de SU PROPIO ayuntamiento (restricción de rol),
+    // no que no vea los de uno ajeno (eso es aislamiento por RLS, cubierto en
+    // multi-tenant-isolation.e2e-spec.ts).
+    const admin = await crearAdminDePrueba(app, prisma, { email: 'roles-admin@test.local' });
+    adminToken = admin.token;
+    ({ token: gestorToken } = await crearGestorDePrueba(app, prisma, {
+      email: 'roles-gestor@test.local',
+      organizacionId: admin.organizacionId,
+    }));
 
-    const colonia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-ROLES-COL',
-        nombre: 'Colonia para roles',
-        tipoSuelo: 'URBANO',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
-    coloniaId = colonia.id;
+    await runAsSuperadmin(async () => {
+      const colonia = await prisma.colonia.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          codigoOficial: 'E2E-ROLES-COL',
+          nombre: 'Colonia para roles',
+          tipoSuelo: 'URBANO',
+          latitud: 1,
+          longitud: 1,
+        },
+      });
+      coloniaId = colonia.id;
 
-    const comedero = await prisma.comedero.create({
-      data: { coloniaId, ubicacionDetallada: 'Junto al banco' },
-    });
-    comederoId = comedero.id;
+      const comedero = await prisma.comedero.create({
+        data: { organizacionId: admin.organizacionId, coloniaId, ubicacionDetallada: 'Junto al banco' },
+      });
+      comederoId = comedero.id;
 
-    const gato = await prisma.gato.create({
-      data: { coloniaId, sexo: 'MACHO', capaPelaje: 'Atigrado', estadoCer: 'AVISTADO' },
-    });
-    gatoId = gato.id;
+      const gato = await prisma.gato.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          coloniaId,
+          sexo: 'MACHO',
+          capaPelaje: 'Atigrado',
+          estadoCer: 'AVISTADO',
+        },
+      });
+      gatoId = gato.id;
 
-    const voluntario = await prisma.voluntario.create({
-      data: {
-        dni: '11111111H',
-        nombre: 'Voluntario Roles E2E',
-        urlCesionDatos: 'https://example.com/cesiones/roles-e2e.pdf',
-      },
-    });
-    voluntarioId = voluntario.id;
+      const voluntario = await prisma.voluntario.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          dni: '11111111H',
+          nombre: 'Voluntario Roles E2E',
+          urlCesionDatos: 'https://example.com/cesiones/roles-e2e.pdf',
+        },
+      });
+      voluntarioId = voluntario.id;
 
-    const asignacion = await prisma.asignacionVoluntario.create({
-      data: { voluntarioId, coloniaId, rolAsignado: 'Fixture roles E2E' },
+      const asignacion = await prisma.asignacionVoluntario.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          voluntarioId,
+          coloniaId,
+          rolAsignado: 'Fixture roles E2E',
+        },
+      });
+      asignacionId = asignacion.id;
     });
-    asignacionId = asignacion.id;
   });
 
   afterAll(async () => {

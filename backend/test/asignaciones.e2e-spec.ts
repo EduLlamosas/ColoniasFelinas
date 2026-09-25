@@ -1,8 +1,9 @@
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { runAsSuperadmin } from '../src/prisma/tenant-context.js';
 import { bootstrapApp } from './utils/bootstrap-app.js';
-import { registerAdminOrThrow } from './utils/register-admin.js';
+import { crearAdminDePrueba } from './utils/auth-fixtures.js';
 import { cleanDatabase } from './utils/clean-database.js';
 
 const CREATE_ASIGNACION = `
@@ -42,26 +43,30 @@ describe('Asignaciones (integración real, e2e)', () => {
   beforeAll(async () => {
     ({ app, prisma } = await bootstrapApp());
     await cleanDatabase(prisma);
-    ({ token } = await registerAdminOrThrow(app, prisma));
+    const admin = await crearAdminDePrueba(app, prisma);
+    token = admin.token;
 
-    const colonia = await prisma.colonia.create({
-      data: {
-        codigoOficial: 'E2E-ASIG-COL',
-        nombre: 'Colonia para asignaciones',
-        tipoSuelo: 'URBANO',
-        latitud: 1,
-        longitud: 1,
-      },
-    });
+    const { colonia, voluntario } = await runAsSuperadmin(async () => ({
+      colonia: await prisma.colonia.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          codigoOficial: 'E2E-ASIG-COL',
+          nombre: 'Colonia para asignaciones',
+          tipoSuelo: 'URBANO',
+          latitud: 1,
+          longitud: 1,
+        },
+      }),
+      voluntario: await prisma.voluntario.create({
+        data: {
+          organizacionId: admin.organizacionId,
+          dni: '87654321X',
+          nombre: 'Voluntario E2E',
+          urlCesionDatos: 'https://example.com/cesiones/voluntario-e2e.pdf',
+        },
+      }),
+    }));
     coloniaId = colonia.id;
-
-    const voluntario = await prisma.voluntario.create({
-      data: {
-        dni: '87654321X',
-        nombre: 'Voluntario E2E',
-        urlCesionDatos: 'https://example.com/cesiones/voluntario-e2e.pdf',
-      },
-    });
     voluntarioId = voluntario.id;
   });
 
@@ -84,7 +89,9 @@ describe('Asignaciones (integración real, e2e)', () => {
     asignacionId = res.body.data.createAsignacion.id;
     expect(asignacionId).toBeDefined();
 
-    const enBaseDeDatos = await prisma.asignacionVoluntario.findUnique({ where: { id: Number(asignacionId) } });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.asignacionVoluntario.findUnique({ where: { id: Number(asignacionId) } }),
+    );
     expect(enBaseDeDatos?.rolAsignado).toBe('SUPERVISOR');
   });
 
@@ -120,7 +127,9 @@ describe('Asignaciones (integración real, e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    const enBaseDeDatos = await prisma.asignacionVoluntario.findUnique({ where: { id: Number(asignacionId) } });
+    const enBaseDeDatos = await runAsSuperadmin(() =>
+      prisma.asignacionVoluntario.findUnique({ where: { id: Number(asignacionId) } }),
+    );
     expect(enBaseDeDatos).toBeNull();
   });
 });
