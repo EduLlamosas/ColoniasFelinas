@@ -29,6 +29,8 @@ export class TenantContextInterceptor implements NestInterceptor {
       setTenantContext({
         organizacionId: user.organizacionId,
         isSuperadmin: user.organizacionId === null,
+        usuarioId: user.sub,
+        rol: user.rol,
       });
     }
 

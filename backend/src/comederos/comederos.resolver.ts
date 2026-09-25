@@ -10,8 +10,10 @@ import { Comedero } from './entities/comedero.entity.js';
 import { CreateComederoInput } from './dto/create-comedero.input.js';
 import { UpdateComederoInput } from './dto/update-comedero.input.js';
 
+// Lectura abierta también a VOLUNTARIO (trabajo de campo) - no a VETERINARIO, que no gestiona
+// comederos.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
+@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR, RolUsuario.VOLUNTARIO)
 @Resolver(() => Comedero)
 export class ComederosResolver {
   constructor(private readonly comederosService: ComederosService) {}

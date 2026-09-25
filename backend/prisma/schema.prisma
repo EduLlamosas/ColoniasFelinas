@@ -30,6 +30,42 @@ enum EstadoCer {
 enum RolUsuario {
   ADMINISTRADOR
   GESTOR
+  // Cuenta de trabajo de campo dentro del ayuntamiento (la da de alta un ADMINISTRADOR, como
+  // GESTOR) - lectura de colonias/comederos/gatos y alta de visitas a comedero, pero SIN
+  // registros clínicos ni la pantalla de voluntarios/asignaciones. No confundir con la entidad
+  // Voluntario (voluntarios.prisma) - esa es un registro de datos para la asignación a colonias,
+  // sin login propio; esto es un rol de acceso a la aplicación. Pueden coexistir sin estar
+  // enlazados: una misma persona puede tener un registro Voluntario Y una cuenta VOLUNTARIO, pero
+  // el sistema no los relaciona automáticamente en esta primera versión.
+  VOLUNTARIO
+  // Cuenta de trabajo clínico dentro del ayuntamiento (la da de alta un ADMINISTRADOR). Lectura
+  // de colonias y gatos (necesita saber a qué colonia/gato pertenece cada intervención) y
+  // lectura+alta de registros clínicos - lo contrario de VOLUNTARIO: sin comederos/visitas ni
+  // voluntarios/asignaciones, esto no es trabajo de campo, es trabajo veterinario.
+  VETERINARIO
+  // Cuenta ciudadana gratuita, ligada a UNA organización (su ayuntamiento) pero sin ningún
+  // permiso sobre los datos reales - solo puede crear Aportacion* y ver las suyas propias (ver
+  // AportacionesModule). No confundir con GESTOR: un GESTOR es personal del propio ayuntamiento.
+  PARTICULAR
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+enum EstadoAportacion {
+  // Recién enviada, todavía no ha pasado el filtro de reglas (AportacionFilterService).
+  PENDIENTE_AUTOMATICO
+  // El filtro de reglas la descartó sola - nunca llega a un humano del ayuntamiento.
+  RECHAZADA_AUTOMATICA
+  // Pasó el filtro, esperando que alguien del ayuntamiento la revise a mano.
+  PENDIENTE_MANUAL
+  // El ayuntamiento la aceptó - ya existe una Colonia/Gato real a partir de ella.
+  ACEPTADA
+  // El ayuntamiento la revisó y la rechazó.
+  RECHAZADA_MANUAL
 }
 
 enum TipoEventoClinico {
@@ -76,6 +112,14 @@ model Usuario {
   // ve las filas de todas las organizaciones.
   organizacionId Int?          @map("organizacion_id")
   organizacion   Organizacion? @relation(fields: [organizacionId], references: [id], onDelete: Cascade)
+  // Siempre true para ADMINISTRADOR/GESTOR (los da de alta un humano - crearUsuario/
+  // crearOrganizacion - no hace falta re-verificar su email). Solo importa de verdad para
+  // PARTICULAR: registrarParticular la deja en false y manda un email con
+  // tokenVerificacionEmail; hasta que no se verifica, crearAportacionColonia rechaza cualquier
+  // envío - es el filtro más barato contra altas desechables antes de gastar nada de cuota.
+  emailVerificado         Boolean   @default(true) @map("email_verificado")
+  tokenVerificacionEmail  String?   @unique @map("token_verificacion_email")
+  tokenVerificacionExpira DateTime? @map("token_verificacion_expira")
   // Incluido en el payload del JWT al firmarlo y comprobado en JwtStrategy en cada petición: un
   // UPDATE que lo incremente ("token_version = token_version + 1") invalida de golpe todos los
   // tokens ya emitidos para este usuario (dispositivo perdido, token compartido por error...),
@@ -84,11 +128,97 @@ model Usuario {
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  visitasComedero   VisitaComedero[]
-  registrosClinicos RegistroClinico[]
+  visitasComedero    VisitaComedero[]
+  registrosClinicos  RegistroClinico[]
+  aportacionesColonia AportacionColonia[]
+  aportacionesGato    AportacionGato[]
 
   @@index([organizacionId])
   @@map("usuarios")
+}
+
+// Alta pública de un ayuntamiento nuevo, ANTES de que exista ninguna Organizacion/Usuario real -
+// a propósito no reutiliza Organizacion con un flag "inactiva": así nadie tiene una cuenta
+// utilizable antes de que tú confirmes contrato y pago a mano (ver
+// OrganizacionesResolver#aprobarSolicitudOrganizacion, que entonces sí crea la Organizacion y su
+// primer admin, igual que ya hace crearOrganizacion para el alta directa por superadmin).
+model SolicitudOrganizacion {
+  id               Int             @id @default(autoincrement())
+  nombre           String
+  slug             String          @unique @db.VarChar(80)
+  contactoNombre   String          @map("contacto_nombre")
+  contactoEmail    String          @map("contacto_email")
+  contactoTelefono String?         @map("contacto_telefono")
+  mensaje          String?
+  estado           EstadoSolicitud @default(PENDIENTE)
+  // Rellenado solo al aprobar - el id de la Organizacion real que se creó a partir de esta
+  // solicitud, para poder trazar una hasta la otra.
+  organizacionCreadaId Int?        @map("organizacion_creada_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@map("solicitudes_organizacion")
+}
+
+// Colonia propuesta por una cuenta PARTICULAR - una zona de aterrizaje separada de Colonia a
+// propósito, no un campo "estado" en la tabla real: así Colonia y todo lo que cuelga de ella
+// (comederos, gatos, RLS, consultas normales de la app) no tiene que saber nunca que existió un
+// estado "no contrastado" - solo esta tabla y AportacionGato lo conocen. Al aceptar
+// (AportacionesService#revisar), se copia una Colonia/Gato real y se guarda su id en
+// coloniaCreadaId/gatoCreadoId; la aportación en sí queda como registro histórico, no se borra.
+model AportacionColonia {
+  id             Int              @id @default(autoincrement())
+  organizacionId Int              @map("organizacion_id")
+  usuarioId      Int              @map("usuario_id")
+  nombre         String
+  tipoSuelo      TipoSuelo        @map("tipo_suelo")
+  latitud        Float
+  longitud       Float
+  observaciones  String?
+  fotoUrl        String?          @map("foto_url")
+  estado         EstadoAportacion @default(PENDIENTE_AUTOMATICO)
+  // Por qué la rechazó el filtro automático o la persona que la revisó - se le muestra tal cual
+  // a quien la mandó, para que sepa qué corregir si quiere volver a intentarlo.
+  motivoRechazo   String?  @map("motivo_rechazo")
+  coloniaCreadaId Int?     @map("colonia_creada_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  usuario Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  gatos   AportacionGato[]
+
+  @@index([organizacionId])
+  @@index([usuarioId])
+  @@map("aportaciones_colonia")
+}
+
+// Gato propuesto junto con una AportacionColonia (no se admite aportar un gato suelto sobre una
+// colonia YA real - ver el comentario de alcance en AportacionesService). Su estado sigue al de
+// la colonia a la que pertenece: se aceptan/rechazan juntos, nunca por separado.
+model AportacionGato {
+  id                  Int              @id @default(autoincrement())
+  organizacionId      Int              @map("organizacion_id")
+  usuarioId           Int              @map("usuario_id")
+  aportacionColoniaId Int              @map("aportacion_colonia_id")
+  nombre              String?
+  sexo                Sexo
+  capaPelaje          String           @map("capa_pelaje")
+  estadoCer           EstadoCer        @map("estado_cer")
+  observaciones       String?
+  fotoUrl             String?          @map("foto_url")
+  estado              EstadoAportacion @default(PENDIENTE_AUTOMATICO)
+  motivoRechazo       String?          @map("motivo_rechazo")
+  gatoCreadoId        Int?             @map("gato_creado_id")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  usuario           Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  aportacionColonia AportacionColonia @relation(fields: [aportacionColoniaId], references: [id], onDelete: Cascade)
+
+  @@index([organizacionId])
+  @@index([usuarioId])
+  @@index([aportacionColoniaId])
+  @@map("aportaciones_gato")
 }
 
 model Colonia {

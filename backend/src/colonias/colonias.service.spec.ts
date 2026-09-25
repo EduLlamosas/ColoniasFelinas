@@ -35,7 +35,7 @@ describe('ColoniasService', () => {
     const data = { codigoOficial: 'COL-1', nombre: 'X', tipoSuelo: 'URBANO', latitud: 1, longitud: 1 };
     prisma.colonia.create.mockResolvedValue({ id: '1', ...data });
 
-    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false, usuarioId: null, rol: null }, () =>
       service.create(data as never),
     );
 

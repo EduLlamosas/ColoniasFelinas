@@ -13,8 +13,11 @@ import { Asignacion } from '../asignaciones/entities/asignacion.entity.js';
 import { CreateColoniaInput } from './dto/create-colonia.input.js';
 import { UpdateColoniaInput } from './dto/update-colonia.input.js';
 
+// Lectura abierta también a VOLUNTARIO y VETERINARIO (necesitan ver el censo para su propio
+// trabajo de campo/clínico) - las 3 mutaciones de escritura de abajo siguen reservadas a
+// ADMINISTRADOR vía su propio @Roles de método, que sustituye a este de clase, no se suma.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
+@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR, RolUsuario.VOLUNTARIO, RolUsuario.VETERINARIO)
 @Resolver(() => Colonia)
 export class ColoniasResolver {
   constructor(private readonly coloniasService: ColoniasService) {}

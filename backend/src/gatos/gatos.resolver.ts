@@ -11,8 +11,9 @@ import { RegistroClinico } from '../registros-clinicos/entities/registro-clinico
 import { CreateGatoInput } from './dto/create-gato.input.js';
 import { UpdateGatoInput } from './dto/update-gato.input.js';
 
+// Lectura abierta también a VOLUNTARIO y VETERINARIO, mismo motivo que en ColoniasResolver.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
+@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR, RolUsuario.VOLUNTARIO, RolUsuario.VETERINARIO)
 @Resolver(() => Gato)
 export class GatosResolver {
   constructor(private readonly gatosService: GatosService) {}

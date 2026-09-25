@@ -4,7 +4,7 @@ import { runWithTenantContext } from '../prisma/tenant-context.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 
 const conOrganizacion = <T>(fn: () => T) =>
-  runWithTenantContext({ organizacionId: 3, isSuperadmin: false }, fn);
+  runWithTenantContext({ organizacionId: 3, isSuperadmin: false, usuarioId: null, rol: null }, fn);
 
 function createPrismaMock() {
   const tx = {

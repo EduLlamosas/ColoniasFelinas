@@ -40,6 +40,16 @@ export function tenantExtension(basePrisma: PrismaClient) {
           // Si no hay contexto en absoluto (nadie llamó a runWithTenantContext/runAsSuperadmin),
           // no se fija nada - RLS deniega todas las filas por defecto, no es un bypass silencioso.
 
+          // Solo las políticas de aportaciones_colonia/aportaciones_gato los leen (ver
+          // TenantContext) - un PARTICULAR únicamente ve sus propias aportaciones, ni siquiera las
+          // de otro PARTICULAR de la misma organización.
+          if (ctx && Number.isInteger(ctx.usuarioId)) {
+            await tx.$executeRawUnsafe(`SET LOCAL app.usuario_id = '${ctx.usuarioId}'`);
+          }
+          if (ctx?.rol === 'PARTICULAR') {
+            await tx.$executeRawUnsafe(`SET LOCAL app.es_particular = 'true'`);
+          }
+
           const delegate = (tx as unknown as Record<string, Record<string, (a: unknown) => unknown>>)[
             model.charAt(0).toLowerCase() + model.slice(1)
           ];

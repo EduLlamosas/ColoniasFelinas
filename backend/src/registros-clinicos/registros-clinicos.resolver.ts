@@ -12,8 +12,10 @@ import { RegistrosClinicosService } from './registros-clinicos.service.js';
 import { RegistroClinico } from './entities/registro-clinico.entity.js';
 import { CreateRegistroClinicoInput } from './dto/create-registro-clinico.input.js';
 
+// VETERINARIO también puede leer Y registrar intervenciones (es su trabajo) - no VOLUNTARIO, que
+// no tiene acceso a historial clínico.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
+@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR, RolUsuario.VETERINARIO)
 @Resolver(() => RegistroClinico)
 export class RegistrosClinicosResolver {
   constructor(private readonly registrosClinicosService: RegistrosClinicosService) {}

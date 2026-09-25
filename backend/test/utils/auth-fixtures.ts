@@ -37,6 +37,10 @@ interface CrearUsuarioOverrides {
   // antiguo registerUserOrThrow: cada usuario, aislado). Pásalo explícito cuando el test necesite
   // varios usuarios en la MISMA organización (ver roles.e2e-spec.ts).
   organizacionId?: number;
+  // Solo importa de verdad para rol PARTICULAR (ver Usuario.emailVerificado) - por defecto true
+  // (igual que el propio default de columna) porque la mayoría de tests no están probando el
+  // flujo de verificación en sí, solo necesitan una cuenta ya utilizable.
+  emailVerificado?: boolean;
 }
 
 export async function crearUsuarioDePrueba(
@@ -59,6 +63,7 @@ export async function crearUsuarioDePrueba(
         nombreCompleto: overrides.nombreCompleto ?? 'E2E Tester',
         rol: overrides.rol ?? 'GESTOR',
         organizacionId,
+        emailVerificado: overrides.emailVerificado ?? true,
       },
     }),
   );
@@ -92,6 +97,14 @@ export function crearAdminDePrueba(
   overrides: Omit<CrearUsuarioOverrides, 'rol'> = {},
 ) {
   return crearUsuarioDePrueba(app, prisma, { ...overrides, rol: 'ADMINISTRADOR' });
+}
+
+export function crearParticularDePrueba(
+  app: INestApplication,
+  prisma: PrismaService,
+  overrides: Omit<CrearUsuarioOverrides, 'rol'> = {},
+) {
+  return crearUsuarioDePrueba(app, prisma, { ...overrides, rol: 'PARTICULAR' });
 }
 
 // organizacionId: null - el superadmin no pertenece a ninguna organización (ver

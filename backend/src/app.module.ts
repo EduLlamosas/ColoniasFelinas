@@ -16,11 +16,14 @@ import { VoluntariosModule } from './voluntarios/voluntarios.module.js';
 import { AsignacionesModule } from './asignaciones/asignaciones.module.js';
 import { VisitasComederoModule } from './visitas-comedero/visitas-comedero.module.js';
 import { RegistrosClinicosModule } from './registros-clinicos/registros-clinicos.module.js';
+import { AportacionesModule } from './aportaciones/aportaciones.module.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { OrganizacionesModule } from './organizaciones/organizaciones.module.js';
+import { RegistroPublicoModule } from './registro-publico/registro-publico.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { StorageModule } from './storage/storage.module.js';
+import { EmailModule } from './email/email.module.js';
 import { EstadisticasModule } from './estadisticas/estadisticas.module.js';
 import { BenchmarkModule } from './benchmark/benchmark.module.js';
 import { formatGraphqlError } from './graphql/format-error.util.js';
@@ -99,10 +102,13 @@ const UPLOADS_RATE_LIMIT_MAX_ATTEMPTS = 30;
     AsignacionesModule,
     VisitasComederoModule,
     RegistrosClinicosModule,
+    AportacionesModule,
     UsuariosModule,
     OrganizacionesModule,
+    RegistroPublicoModule,
     AuthModule,
     StorageModule,
+    EmailModule,
     UploadsModule,
     EstadisticasModule,
     ...(ENABLE_BENCHMARK_MODULE ? [BenchmarkModule] : []),

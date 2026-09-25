@@ -12,8 +12,11 @@ import { VisitasComederoService } from './visitas-comedero.service.js';
 import { VisitaComedero } from './entities/visita-comedero.entity.js';
 import { CreateVisitaComederoInput } from './dto/create-visita-comedero.input.js';
 
+// VOLUNTARIO también puede leer Y registrar visitas (es la mutación de trabajo de campo por
+// excelencia) - no hay override de método que reservar aquí, a diferencia de las entidades con
+// mutaciones de datos maestros.
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR)
+@Roles(RolUsuario.ADMINISTRADOR, RolUsuario.GESTOR, RolUsuario.VOLUNTARIO)
 @Resolver(() => VisitaComedero)
 export class VisitasComederoResolver {
   constructor(private readonly visitasComederoService: VisitasComederoService) {}

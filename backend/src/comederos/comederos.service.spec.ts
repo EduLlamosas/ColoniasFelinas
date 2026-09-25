@@ -35,7 +35,7 @@ describe('ComederosService', () => {
     const data = { coloniaId: 1, ubicacionDetallada: 'junto al banco' };
     prisma.comedero.create.mockResolvedValue({ id: '1', ...data });
 
-    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false, usuarioId: null, rol: null }, () =>
       service.create(data as never),
     );
 

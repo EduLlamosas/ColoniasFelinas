@@ -1,7 +1,9 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Int, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { EstadoSolicitud } from '@prisma/client';
 import { OrganizacionesService } from './organizaciones.service.js';
 import { Organizacion, OrganizacionCreada } from './entities/organizacion.entity.js';
+import { SolicitudOrganizacion } from './entities/solicitud-organizacion.entity.js';
 import { CreateOrganizacionInput } from './dto/create-organizacion.input.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SuperadminGuard } from '../auth/guards/superadmin.guard.js';
@@ -22,5 +24,25 @@ export class OrganizacionesResolver {
   @Mutation(() => OrganizacionCreada)
   crearOrganizacion(@Args('data') data: CreateOrganizacionInput) {
     return this.organizacionesService.crear(data);
+  }
+
+  @Query(() => [SolicitudOrganizacion])
+  solicitudesOrganizacion(
+    @Args('estado', { type: () => EstadoSolicitud, nullable: true }) estado?: EstadoSolicitud,
+  ) {
+    return this.organizacionesService.solicitudes(estado);
+  }
+
+  @Mutation(() => Organizacion)
+  aprobarSolicitudOrganizacion(@Args('id', { type: () => Int }) id: number) {
+    return this.organizacionesService.aprobarSolicitud(id);
+  }
+
+  @Mutation(() => Boolean)
+  rechazarSolicitudOrganizacion(
+    @Args('id', { type: () => Int }) id: number,
+    @Args('motivo', { nullable: true }) motivo?: string,
+  ) {
+    return this.organizacionesService.rechazarSolicitud(id, motivo);
   }
 }

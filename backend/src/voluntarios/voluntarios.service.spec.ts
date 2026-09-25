@@ -35,7 +35,7 @@ describe('VoluntariosService', () => {
     const data = { dni: '12345678Z', nombre: 'Ana' };
     prisma.voluntario.create.mockResolvedValue({ id: '1', ...data });
 
-    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false, usuarioId: null, rol: null }, () =>
       service.create(data as never),
     );
 

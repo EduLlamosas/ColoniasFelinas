@@ -12,7 +12,7 @@ function createPrismaMock() {
 }
 
 const conOrganizacion = <T>(fn: () => T) =>
-  runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, fn);
+  runWithTenantContext({ organizacionId: 7, isSuperadmin: false, usuarioId: null, rol: null }, fn);
 
 describe('MediaService', () => {
   let storage: ReturnType<typeof createStorageMock>;

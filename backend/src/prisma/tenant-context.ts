@@ -1,10 +1,18 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient, RolUsuario } from '@prisma/client';
 
 export interface TenantContext {
   // null cuando isSuperadmin es true (el operador del SaaS no pertenece a ninguna organización).
   organizacionId: number | null;
   isSuperadmin: boolean;
+  // usuarioId/rol: null fuera de una petición autenticada real (login, código de sistema vía
+  // runAsSuperadmin). Las políticas RLS de aportaciones_colonia/aportaciones_gato los necesitan
+  // para que un PARTICULAR solo vea SUS PROPIAS aportaciones dentro de su organización - el resto
+  // de tablas solo necesitan organizacionId/isSuperadmin porque un ADMINISTRADOR/GESTOR siempre
+  // ve todo lo de su organización, pero un PARTICULAR nunca ve lo de otro PARTICULAR aunque sea
+  // de la misma organización.
+  usuarioId: number | null;
+  rol: RolUsuario | null;
 }
 
 const storage = new AsyncLocalStorage<TenantContext>();
@@ -37,7 +45,7 @@ export function getTenantContext(): TenantContext | undefined {
 // - así todo lo que lea el contexto más tarde en la misma petición (incluido el batch de un
 // DataLoader, que no se dispara hasta el siguiente tick) ve el valor ya actualizado.
 export function tenantContextMiddleware(_req: unknown, _res: unknown, next: () => void): void {
-  storage.run({ organizacionId: null, isSuperadmin: false }, next);
+  storage.run({ organizacionId: null, isSuperadmin: false, usuarioId: null, rol: null }, next);
 }
 
 // Rellena el store YA ABIERTO por tenantContextMiddleware con el organizacionId real del JWT
@@ -49,6 +57,8 @@ export function setTenantContext(context: TenantContext): void {
   if (!store) return;
   store.organizacionId = context.organizacionId;
   store.isSuperadmin = context.isSuperadmin;
+  store.usuarioId = context.usuarioId;
+  store.rol = context.rol;
 }
 
 // Las llamadas de modelo de Prisma (prisma.usuario.create(...), etc.) son perezosas: NO ejecutan
@@ -82,7 +92,9 @@ export function runWithTenantContext<T>(context: TenantContext, fn: () => T): T 
 // sitios del código de aplicación donde se usa esto - todo lo demás pasa por
 // TenantContextInterceptor con el organizacionId real del JWT.
 export function runAsSuperadmin<T>(fn: () => T): T {
-  return storage.run({ organizacionId: null, isSuperadmin: true }, () => kick(fn()));
+  return storage.run({ organizacionId: null, isSuperadmin: true, usuarioId: null, rol: null }, () =>
+    kick(fn()),
+  );
 }
 
 // Usado por todo `create()` de entidad tenant-scoped (colonias, gatos, comederos...): el
@@ -108,6 +120,15 @@ async function withSetLocal<T>(
     await tx.$executeRawUnsafe(`SET LOCAL app.is_superadmin = 'true'`);
   } else if (ctx && Number.isInteger(ctx.organizacionId)) {
     await tx.$executeRawUnsafe(`SET LOCAL app.tenant_id = '${ctx.organizacionId}'`);
+  }
+  // usuario_id/es_particular: solo las políticas de aportaciones_colonia/aportaciones_gato los
+  // leen (ver comentario en TenantContext) - fijarlos siempre que haya un usuario en sesión no
+  // afecta a ninguna otra política, que ni los mira.
+  if (ctx && Number.isInteger(ctx.usuarioId)) {
+    await tx.$executeRawUnsafe(`SET LOCAL app.usuario_id = '${ctx.usuarioId}'`);
+  }
+  if (ctx?.rol === 'PARTICULAR') {
+    await tx.$executeRawUnsafe(`SET LOCAL app.es_particular = 'true'`);
   }
   return txActiveStorage.run(true, fn);
 }

@@ -35,7 +35,7 @@ describe('GatosService', () => {
     const data = { coloniaId: 1, sexo: 'MACHO', capaPelaje: 'Atigrado', estadoCer: 'AVISTADO' };
     prisma.gato.create.mockResolvedValue({ id: '1', ...data });
 
-    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false }, () =>
+    const result = await runWithTenantContext({ organizacionId: 7, isSuperadmin: false, usuarioId: null, rol: null }, () =>
       service.create(data as never),
     );
 
